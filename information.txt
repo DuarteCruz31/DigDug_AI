@@ -1,0 +1,1 @@
+{'level': 1, 'step': 160, 'timeout': 3000, 'player': 'duartecruz', 'score': 0, 'lives': 3, 'digdug': [1, 1], 'enemies': [{'name': 'Fygar', 'id': '2a64cb5f-50f4-4bf2-b7ac-54af35c5f194', 'pos': [30, 13], 'dir': 0}, {'name': 'Pooka', 'id': '576156d6-3c3e-4ba1-acc2-60fd470c92ed', 'pos': [30, 14], 'dir': 2}], 'rocks': [{'id': '0435bc8b-556a-4c2d-bb6c-a0cd5f31a75a', 'pos': [6, 9]}]}
