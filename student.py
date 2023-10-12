@@ -3,8 +3,9 @@ import getpass
 import json
 import os
 import websockets
-import pygame
-import math
+import numpy as np
+
+mapa = np.zeros((50, 100))
 
 async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
@@ -18,8 +19,13 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 if 'digdug' in state:
                     digdug_x, digdug_y = state['digdug']
+
+                    mapa[digdug_x, digdug_y] = 1
                 else:
                     digdug_x, digdug_y = [0, 0]
+                    
+                    mapa[0, 0] = 1
+
 
                 if 'enemies' in state:
                     enemies = state['enemies']
@@ -44,33 +50,53 @@ def decide_digdug_move(digdug_x, digdug_y, enemies, last_move):
 
     for enemy in enemies:
         enemy_x, enemy_y = enemy['pos']
-        
+
+        mapa[enemy_x, enemy_y] = 1
+
         horizontal_distance = abs(digdug_x - enemy_x)
         vertical_distance = abs(digdug_y - enemy_y)
 
-        if horizontal_distance <= 3 and vertical_distance == 0:
-            # If an enemy is too close horizontally, move away
+        if horizontal_distance <= 3 and vertical_distance == 0 and same_tunnel(digdug_x, digdug_y, enemy_x, enemy_y):
             move = avoid_enemy_horizontal(digdug_x, enemy_x)
             if enemy['id'] not in enemies_shot:
                 shoot = True
                 enemies_shot.add(enemy['id'])
             break
-        elif vertical_distance <= 3 and horizontal_distance == 0:
-            # If an enemy is too close vertically, move away
+        elif vertical_distance <= 3 and horizontal_distance == 0 and same_tunnel(digdug_x, digdug_y, enemy_x, enemy_y):
             move = avoid_enemy_vertical(digdug_y, enemy_y)
             if enemy['id'] not in enemies_shot:
                 shoot = True
                 enemies_shot.add(enemy['id'])
             break
+        elif same_tunnel(digdug_x, digdug_y, enemy_x, enemy_y):
+            move = move_towards_enemy(digdug_x, digdug_y, enemy_x, enemy_y, last_move)
         else:
-            # If no enemies are close, move towards the closest one
+            shoot = False
             move = move_towards_enemy(digdug_x, digdug_y, enemy_x, enemy_y, last_move)
 
-    # If no move was decided, move forward
     if not move:
-        move = "d"
+        # Se nao for tomada decisao o gajo fica no mesmo sitio
+        move = " "
 
     return move, shoot
+
+
+def same_tunnel(start_x, start_y, end_x, end_y):
+    if start_x == end_x:
+        min_y = min(start_y, end_y)
+        max_y = max(start_y, end_y)
+        for y in range(min_y, max_y):
+            if mapa[start_x][y] == 0:
+                return False
+    elif start_y == end_y:
+        min_x = min(start_x, end_x)
+        max_x = max(start_x, end_x)
+        for x in range(min_x, max_x):
+            if mapa[x][start_y] == 0:
+                return False
+
+    return True
+
 
 def avoid_enemy_horizontal(digdug_x, enemy_x):
     if digdug_x < enemy_x:
