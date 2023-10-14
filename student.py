@@ -121,6 +121,70 @@ def move_towards_enemy(digdug_x, digdug_y, enemy_x, enemy_y, last_move):
         return "w"
     return last_move
 
+
+# GONCALO BÓRRO
+
+def turned(last_move):
+    if last_move == "a":
+        return "left"
+    elif last_move == "d":
+        return "right"
+    elif last_move == "s":
+        return "down"
+    elif last_move == "w":
+        return "up"   
+
+def can_shoot(digdug_x, digdug_y, enemy_x, enemy_y, turn):
+    if turn == "right":
+        return digdug_x > enemy_x
+    elif turn == "left":
+        return digdug_x < enemy_x
+    elif turn == "down":
+        return digdug_y < enemy_y
+    elif turn == "up":
+        return digdug_y > enemy_y
+    else:
+        return False
+    
+def move_towards_enemy_x(digdug_x, enemy_x, last_move):
+    if digdug_x < enemy_x:
+        return "d"
+    elif digdug_x > enemy_x:
+        return "a"
+    return last_move
+
+def move_towards_enemy_y(digdug_y, enemy_y, last_move):
+    if digdug_y < enemy_y:
+        return "s"
+    elif digdug_y > enemy_y:
+        return "w"
+    return last_move
+
+class Enemies:
+    def __init__(self):
+        self.quantity = 0
+        self.each_tracker = [] #[ID,position]
+        self.each_lastmove = [] #[ID,lastmove]
+        
+    def update(self, ID, enemy_x, enemy_y):
+        for enemy in self.each_tracker:
+            if ID == enemy[0]:
+                self.update_lastmove(ID,enemy[1],enemy[2])
+                enemy[1] = enemy_x
+                enemy[2] = enemy_y
+                return True
+        self.each_tracker.append([ID,enemy_x,enemy_y])
+        return False
+
+    def update_lastmove(self, ID , x , y):
+        for enemy in self.each_lastmove:
+            if ID == enemy[0]:
+                enemy[1] = x
+                enemy[2] = y
+                return True
+        self.each_lastmove.append([ID,x,y])
+        return False
+
 loop = asyncio.get_event_loop()
 SERVER = os.environ.get("SERVER", "localhost")
 PORT = os.environ.get("PORT", "8000")
