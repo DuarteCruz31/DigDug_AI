@@ -67,6 +67,7 @@ def possible_actions(game_state):
     if can_move(game_state, digdug_x, digdug_y + 1):
         actions.append('d')
     actions.append(' ')
+    actions.append('A')
     return actions
 
 def simulate_action(game_state, action):
@@ -102,3 +103,39 @@ def can_move(game_state, x, y):
     if x < 0 or x >= len(mapa) or y < 0 or y >= len(mapa[0]):
         return False
     return mapa[x][y] == 0
+
+def is_moving(enemy_state,mapa):
+    #se ele se estiver a mexer entre tuneis
+    #return true se ele se estiver a mexer e false se estiver num tunel previamente cavado
+    if mapa[enemy_state[0],enemy_state[1]] == 0:
+        return True
+    return False
+    
+def tunnels(game_state):
+    tuneis = []
+    for enemy in game_state['enemies']:
+        enemyx, enemyy = enemy['pos']
+        direction = enemy['dir']    
+        tunel = []
+
+
+        if direction == 0:
+            for x in range(9):
+                tunel.append(enemyx,enemyy-x)
+            tuneis.append(tunel)
+        elif direction == 1:
+            for x in range(9):
+                tunel.append(enemyx+x,enemyy)
+            tuneis.append(tunel)
+        elif direction == 2:
+            for x in range(9):
+                tunel.append(enemyx,enemyy+x)
+            tuneis.append(tunel)
+        elif direction == 3:
+            for x in range(9):
+                 tunel.append(enemyx-x,enemyy)
+            tuneis.append(tunel)
+        else:
+            print("ERRO CARALHO")
+
+    return tuneis

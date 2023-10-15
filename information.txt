@@ -1,1 +1,11 @@
-{'level': 1, 'step': 160, 'timeout': 3000, 'player': 'duartecruz', 'score': 0, 'lives': 3, 'digdug': [1, 1], 'enemies': [{'name': 'Fygar', 'id': '2a64cb5f-50f4-4bf2-b7ac-54af35c5f194', 'pos': [30, 13], 'dir': 0}, {'name': 'Pooka', 'id': '576156d6-3c3e-4ba1-acc2-60fd470c92ed', 'pos': [30, 14], 'dir': 2}], 'rocks': [{'id': '0435bc8b-556a-4c2d-bb6c-a0cd5f31a75a', 'pos': [6, 9]}]}
+{'level': 1, 'step': 12, 'timeout': 3000, 'player': 'duartecruz', 'score': 0, 'lives': 3, 'digdug': [12, 1], 
+'enemies': [{'name': 'Fygar', 'id': '70d17cd9-42f4-4507-b53c-cc8e44d6a69c', 'pos': [15, 8], 'dir': 3}, 
+{'name': 'Pooka', 'id': '94d664bc-7b1f-4ce7-a51f-bbb222904648', 'pos': [45, 4], 'dir': 2}, 
+{'name': 'Pooka', 'id': '33aae1a9-6bbd-4010-bd4c-d5494a10f501', 'pos': [13, 20], 'dir': 3}], 
+'rocks': [{'id': '501db113-243f-457e-8387-4d8b052704f9', 'pos': [16, 8]}]}
+
+
+baixo - 2
+direita - 1
+esquerda - 3
+cima - 0

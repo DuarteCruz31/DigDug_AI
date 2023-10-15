@@ -4,7 +4,6 @@ import json
 import os
 import websockets
 import numpy as np
-from node import Node
 from collections import deque
 
 mapa = np.zeros((50, 100))
@@ -14,11 +13,13 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
 
         last_move = "d"
-
+        tunels = None
+                
         while True:
             try:
                 state = json.loads(await websocket.recv())
-
+                
+                
                 if 'digdug' in state:
                     digdug_x, digdug_y = state['digdug']
 
@@ -28,8 +29,15 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     
                     mapa[0, 0] = 1
 
-
                 if 'enemies' in state:
+                    if state['step'] == 1:  
+                        tunels = tunnels(state)
+
+                    print("--------------------")
+                    print(state) 
+                    print(tunels)
+                    print("--------------------")
+
                     enemies = state['enemies']
                     move, shoot = decide_digdug_move(digdug_x, digdug_y, enemies, last_move)
 
@@ -124,6 +132,36 @@ def move_towards_enemy(digdug_x, digdug_y, enemy_x, enemy_y, last_move):
     elif digdug_y > enemy_y:
         return "w"
     return last_move
+
+def tunnels(game_state):
+    tuneis = []
+    for enemy in game_state['enemies']:
+        enemyx, enemyy = enemy['pos']
+        direction = enemy['dir']    
+        tunel = []
+
+
+        if direction == 0:
+            for x in range(9):
+                tunel.append([enemyx,enemyy-x])
+            tuneis.append(tunel)
+        elif direction == 1:
+            for x in range(9):
+                tunel.append([enemyx+x,enemyy])
+            tuneis.append(tunel)
+        elif direction == 2:
+            for x in range(9):
+                tunel.append([enemyx,enemyy+x])
+            tuneis.append(tunel)
+        elif direction == 3:
+            for x in range(9):
+                tunel.append([enemyx-x,enemyy])
+            tuneis.append(tunel)
+        else:
+            print("ERRO CARALHO")
+
+    return tuneis
+
 
 loop = asyncio.get_event_loop()
 SERVER = os.environ.get("SERVER", "localhost")
