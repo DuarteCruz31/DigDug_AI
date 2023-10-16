@@ -186,6 +186,59 @@ class Enemies:
                 return True
         self.each_lastmove.append([ID,x,y])
         return False
+    
+def tunnels(game_state1):
+    tuneis = []
+    for enemy in game_state1["enemies"]:
+        enemyx, enemyy = enemy["pos"]
+        direction = enemy["dir"]
+        tunel = []
+
+        if direction == 0:
+            for x in range(7):
+                tunel.append([enemyx, enemyy - x])
+            tuneis.append(tunel)
+        elif direction == 1:
+            for x in range(7):
+                tunel.append([enemyx + x, enemyy])
+            tuneis.append(tunel)
+        elif direction == 2:
+            for x in range(7):
+                tunel.append([enemyx, enemyy + x])
+            tuneis.append(tunel)
+        elif direction == 3:
+            for x in range(7):
+                tunel.append([enemyx - x, enemyy])
+            tuneis.append(tunel)
+        else:
+            print("ERRO CARALHO")
+
+    return tuneis
+
+
+def can_calculate(f_state, l_state):
+    pos = []
+    pos2 = []
+    for enemy in f_state["enemies"]:
+        pos.append(enemy["pos"])
+    for enemy in l_state["enemies"]:
+        pos2.append(enemy["pos"])
+
+    for x in range(len(pos)):
+        if pos[x] == pos2[x]:
+            return False
+    return True
+
+
+def calculate_direction(pos, pos2):
+    if pos2[0] > pos[0]:
+        return 1
+    elif pos2[0] < pos[0]:
+        return 3
+    elif pos2[1] > pos[1]:
+        return 2
+    else:
+        return 0
 
 loop = asyncio.get_event_loop()
 SERVER = os.environ.get("SERVER", "localhost")
