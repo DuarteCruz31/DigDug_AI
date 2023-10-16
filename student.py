@@ -6,7 +6,7 @@ import websockets
 import numpy as np
 from collections import deque
 
-mapa = np.zeros((50, 100))
+mapa = np.zeros((48,24))
 
 async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
@@ -14,7 +14,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
         last_move = "d"
         tunels = None
-                
+        pos = None    
+        pos2 = None
+        t = True
+            
         while True:
             try:
                 state = json.loads(await websocket.recv())
@@ -30,12 +33,29 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     mapa[0, 0] = 1
 
                 if 'enemies' in state:
-                    if state['step'] == 1:  
-                        tunels = tunnels(state)
+                    if state['step'] == 1:
+                        pos = state
+                    if t:
+                        if can_calculate(pos,state):  
+                            dir = state
+                            for enemy1 in pos['enemies']:
+                                for enemy2 in dir['enemies']:
+                                    if enemy1['id'] == enemy2['id']:
+                                        enemy1['dir'] = calculate_direction(enemy1['pos'],enemy2['pos'])
 
+                            tunels = tunnels(pos)
+                            t = False
+
+                    if tunels != None:
+                        for tunel in tunels:
+                            for pos in tunel:
+                                mapa[pos[0]][pos[1]] = 1
+                    
+                        
                     print("--------------------")
-                    print(state) 
-                    print(tunels)
+                    for enemy in state['enemies']:
+                        if 1 == mapa[enemy['pos'][0]][enemy['pos'][1]]:
+                            print("tá certo")
                     print("--------------------")
 
                     enemies = state['enemies']
@@ -60,10 +80,10 @@ def decide_digdug_move(digdug_x, digdug_y, enemies, last_move):
 
     enemies_shot = set()
 
+
     for enemy in enemies:
         enemy_x, enemy_y = enemy['pos']
 
-        mapa[enemy_x, enemy_y] = 1
 
         horizontal_distance = abs(digdug_x - enemy_x)
         vertical_distance = abs(digdug_y - enemy_y)
@@ -133,28 +153,28 @@ def move_towards_enemy(digdug_x, digdug_y, enemy_x, enemy_y, last_move):
         return "w"
     return last_move
 
-def tunnels(game_state):
+def tunnels(game_state1):
     tuneis = []
-    for enemy in game_state['enemies']:
+    for enemy in game_state1['enemies']:
         enemyx, enemyy = enemy['pos']
-        direction = enemy['dir']    
+        direction = enemy['dir']        
         tunel = []
 
 
         if direction == 0:
-            for x in range(9):
+            for x in range(7):
                 tunel.append([enemyx,enemyy-x])
             tuneis.append(tunel)
         elif direction == 1:
-            for x in range(9):
+            for x in range(7):
                 tunel.append([enemyx+x,enemyy])
             tuneis.append(tunel)
         elif direction == 2:
-            for x in range(9):
+            for x in range(7):
                 tunel.append([enemyx,enemyy+x])
             tuneis.append(tunel)
         elif direction == 3:
-            for x in range(9):
+            for x in range(7):
                 tunel.append([enemyx-x,enemyy])
             tuneis.append(tunel)
         else:
@@ -162,6 +182,28 @@ def tunnels(game_state):
 
     return tuneis
 
+def can_calculate(f_state,l_state):
+    pos = []
+    pos2 = []
+    for enemy in f_state['enemies']:
+        pos.append(enemy['pos'])
+    for enemy in l_state['enemies']:
+        pos2.append(enemy['pos'])
+    
+    for x in range(len(pos)):
+        if pos[x] == pos2[x]:
+            return False
+    return True
+
+def calculate_direction(pos,pos2):
+    if pos2[0] > pos[0]:
+        return 1
+    elif pos2[0] < pos[0]:
+        return 3
+    elif pos2[1] > pos[1]:
+        return 2
+    else:
+        return 0
 
 loop = asyncio.get_event_loop()
 SERVER = os.environ.get("SERVER", "localhost")

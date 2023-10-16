@@ -111,31 +111,50 @@ def is_moving(enemy_state,mapa):
         return True
     return False
     
-def tunnels(game_state):
+def tunnels(game_state1):
     tuneis = []
-    for enemy in game_state['enemies']:
+    for enemy in game_state1['enemies']:
         enemyx, enemyy = enemy['pos']
-        direction = enemy['dir']    
+        direction = enemy['dir']        
         tunel = []
 
 
         if direction == 0:
             for x in range(9):
-                tunel.append(enemyx,enemyy-x)
+                tunel.append([enemyx,enemyy-x])
             tuneis.append(tunel)
         elif direction == 1:
             for x in range(9):
-                tunel.append(enemyx+x,enemyy)
+                tunel.append([enemyx+x,enemyy])
             tuneis.append(tunel)
         elif direction == 2:
             for x in range(9):
-                tunel.append(enemyx,enemyy+x)
+                tunel.append([enemyx,enemyy+x])
             tuneis.append(tunel)
         elif direction == 3:
             for x in range(9):
-                 tunel.append(enemyx-x,enemyy)
+                tunel.append([enemyx-x,enemyy])
             tuneis.append(tunel)
         else:
             print("ERRO CARALHO")
 
     return tuneis
+
+def can_calculate(f_state,l_state):
+    pos = []
+    pos2 = []
+    for enemy in f_state['enemies']:
+        pos.append(enemy['pos'])
+    for enemy in l_state['enemies']:
+        pos2.append(enemy['pos'])
+    
+    for x in range(len(pos)):
+        if pos[x] == pos2[x]:
+            return False
+    return True
+
+def is_already_free(game_state,mapa):
+    for enemy in game_state['enemies']:
+        if enemy['pos'][1] == 0 or enemy['pos'][1] == 1:
+            return True
+    return False
