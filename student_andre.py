@@ -34,26 +34,53 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         possible_movimentos = param_algoritmo(state)
                         i += 1
 
-                    acao = algoritmo_search(possible_movimentos, state)
-                    print(acao)
-                    objectiveList = acao[-1][1:-1].split(", ")
-                    objective = [int(objectiveList[0]), int(objectiveList[1])]
-                    print(objective)
-                    digdug_x, digdug_y = state["digdug"]
-                    enemy_x, enemy_y = objective[0], objective[1]
+                    nearest_enemy = nearest_distance(state)
 
-                    if digdug_x < enemy_x:
+                    acao = algoritmo_search(
+                        possible_movimentos, state, nearest_enemy, "greedy"
+                    )
+                    objectiveList = acao[1][1:-1].split(", ")
+                    objective = [int(objectiveList[0]), int(objectiveList[1])]
+
+                    digdug_x, digdug_y = state["digdug"]
+                    next_x, next_y = objective[0], objective[1]
+
+                    if digdug_x < next_x:
                         await websocket.send(json.dumps({"cmd": "key", "key": "d"}))
-                    elif digdug_x > enemy_x:
+                    elif digdug_x > next_x:
                         await websocket.send(json.dumps({"cmd": "key", "key": "a"}))
-                    elif digdug_y < enemy_y:
+                    elif digdug_y < next_y:
                         await websocket.send(json.dumps({"cmd": "key", "key": "s"}))
-                    elif digdug_y > enemy_y:
+                    elif digdug_y > next_y:
                         await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
 
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
+
+
+def algoritmo_search(movimentos, state, enemy, strategy):
+    p = SearchProblem(
+        movimentos,
+        str(tuple(state["digdug"])),
+        str(tuple(state["enemies"][enemy]["pos"])),
+    )
+    t = SearchTree(p, strategy)
+
+    return t.search()
+
+
+def nearest_distance(state):
+    nearest_distance = float("inf")
+    for i in range(len(state["enemies"])):
+        enemy = state["enemies"][i]
+        enemy_x, enemy_y = enemy["pos"]
+        distance = abs(state["digdug"][0] - enemy_x) + abs(state["digdug"][1] - enemy_y)
+        if distance < nearest_distance:
+            nearest_distance = distance
+            nearest_enemy = i
+
+    return nearest_enemy
 
 
 def param_algoritmo(state):
@@ -116,17 +143,6 @@ def param_algoritmo(state):
     )
 
     return possible_movimentos
-
-
-def algoritmo_search(movimentos, state):
-    p = SearchProblem(
-        movimentos,
-        str(tuple(state["digdug"])),
-        str(tuple(state["enemies"][0]["pos"])),
-    )
-    t = SearchTree(p, "greedy")
-
-    return t.search()
 
 
 loop = asyncio.get_event_loop()
