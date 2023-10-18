@@ -46,7 +46,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     possible_movimentos, state, nearest_enemy, "greedy", mapa
                 )
 
-                if len(acao) > 1:
+                if acao != None and len(acao) > 1:
                     objectiveList = acao[1][1:-1].split(", ")
                     objective = [int(objectiveList[0]), int(objectiveList[1])]
 
