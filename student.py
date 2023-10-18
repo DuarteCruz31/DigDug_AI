@@ -53,8 +53,15 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     digdug_x, digdug_y = state["digdug"]
                     next_x, next_y = objective[0], objective[1]
 
-                    if avoid_Fyger(state, next_x, next_y):
-                        await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
+                    avoid_move = avoid_Rock(state, next_x, next_y)
+                    if avoid_move is not None:
+                        await websocket.send(json.dumps({"cmd": "key", "key": avoid_move}))
+                        continue
+
+                    avoid_move = avoid_Fyger(state, next_x, next_y)
+                    if avoid_move is not None:
+                        await websocket.send(json.dumps({"cmd": "key", "key": avoid_move}))
+                        continue
 
                     enemyx, enemyy = state["enemies"][nearest_enemy]["pos"]
 
@@ -87,28 +94,47 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
-
+            
+def avoid_Rock(state, next_x, next_y):
+    move = None
+    for rocks in state["rocks"]:
+        rock_x, rock_y = rocks["pos"]
+        if (next_x, next_y) == (rock_x, rock_y):
+            return "w"
+    return move
 
 def avoid_Fyger(state, next_x, next_y):
+    move = None
     for enemy in state["enemies"]:
         if enemy["name"] == "Fygar":
             enemy_x, enemy_y = enemy["pos"]
-            if (
-                (abs(next_y - enemy_y) == 0)
-                and (abs(next_x - enemy_x) < 4)
-                or (enemy["dir"] == 3)
+            if ( # digdug esta a esquerda do inimigo
+                ((enemy_x - next_x == 0) and (enemy_y - next_y < 4) and (enemy["dir"] == 3))
             ):
-                return True
+                return "w"
                 break
-            elif (
-                (abs(next_y - enemy_y) == 0)
-                and (abs(next_x - enemy_x) < 4)
-                or (enemy["dir"] == 1)
+            elif ( # digdug esta a direita do inimigo
+                (next_y - enemy_y == 0)
+                and (next_x - enemy_x < 4)
+                and (enemy["dir"] == 1)
             ):
-                return True
+                return "w"
                 break
-    return False
-
+            elif ( # digdug esta em cima do inimigo
+                (next_x - enemy_x == 0)
+                and (enemy_y - next_y < 4)
+                and (enemy["dir"] == 0)
+            ):
+                return "a"
+                break
+            elif ( # digdug esta em baixo do inimigo
+                (next_x - enemy_x == 0)
+                and (next_y - enemy_y < 4)
+                and (enemy["dir"] == 2)
+            ):
+                return "a"
+                break
+    return move
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
