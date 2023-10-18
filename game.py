@@ -14,6 +14,7 @@ INITIAL_SCORE = 0
 GAME_SPEED = 10
 MAP_SIZE = (48, 24)
 
+
 def level_enemies(level):
     level += MIN_ENEMIES
     fygars = random.randrange(1, level // 2)
@@ -66,11 +67,11 @@ class Rope:
 
         for e in enemies:
             if e.pos in self._pos:
-                e.kill() # kill enemy
+                e.kill()  # kill enemy
 
-                #remove rope after hit
+                # remove rope after hit
                 rope_index = self._pos.index(e.pos)
-                self._pos = self._pos[:rope_index + 1]
+                self._pos = self._pos[: rope_index + 1]
 
                 return True
         return False
@@ -136,9 +137,9 @@ class Game:
         self._enemies = [
             enemy(
                 pos,
-                smart=random.choices(
-                    list(Smart), [1, level // 10, level // 20], k=1
-                )[0],
+                smart=random.choices(list(Smart), [1, level // 10, level // 20], k=1)[
+                    0
+                ],
             )
             for enemy, pos in zip(level_enemies(level), self.map.enemies_spawn)
         ]
