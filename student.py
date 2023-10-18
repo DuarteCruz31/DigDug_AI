@@ -3,7 +3,6 @@ import getpass
 import json
 import os
 import websockets
-from collections import deque
 from digdug import *
 import math
 from tree_search import *
@@ -17,7 +16,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
 
-        i = 0
         while True:
             try:
                 state = json.loads(await websocket.recv())
@@ -29,12 +27,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     continue
 
                 if "enemies" not in state or len(state["enemies"]) == 0:
-                    i = 0
                     continue
 
-                if i == 0:
-                    possible_movimentos = param_algoritmo(state)
-                    i += 1
+                possible_movimentos = param_algoritmo(state, state["enemies"])
 
                 mapa[state["digdug"][0]][state["digdug"][1]] = 0
 
@@ -53,15 +48,31 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     digdug_x, digdug_y = state["digdug"]
                     next_x, next_y = objective[0], objective[1]
 
+                    # Avoid rocks
                     avoid_move = avoid_Rock(state, next_x, next_y)
                     if avoid_move is not None:
-                        await websocket.send(json.dumps({"cmd": "key", "key": avoid_move}))
+                        await websocket.send(
+                            json.dumps({"cmd": "key", "key": avoid_move})
+                        )
                         continue
+                    
+                    # Avoid getting in front of fygar
+                    avoid_Fygers, move = avoid_Fyger(
+                        state, next_x, next_y, mapa, digdug_x, digdug_y
+                    )
+                    if avoid_Fygers:
+                        await websocket.send(json.dumps({"cmd": "key", "key": move}))
 
-                    avoid_move = avoid_Fyger(state, next_x, next_y)
-                    if avoid_move is not None:
-                        await websocket.send(json.dumps({"cmd": "key", "key": avoid_move}))
-                        continue
+                    # Too many enemies too close
+                    too_many_enemies = too_many_enemies_too_close(
+                        state, next_x, next_y
+                    )
+                    if too_many_enemies is not None:
+                        print("Too many enemies too close")
+                        """ await websocket.send(
+                            json.dumps({"cmd": "key", "key": too_many_enemies})
+                        )
+                        continue """
 
                     enemyx, enemyy = state["enemies"][nearest_enemy]["pos"]
 
@@ -95,6 +106,41 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 print("Server has cleanly disconnected us")
                 return
             
+def calculate_distance(x1, y1, x2, y2):
+    return abs(x1 - x2) + abs(y1 - y2)
+
+def too_many_enemies_too_close(state, next_x, next_y):
+    move = None
+    min_distance = float("inf")
+    close_enemies = 0
+
+    for enemy in state["enemies"]:
+        enemy_x, enemy_y = enemy["pos"]
+        distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
+
+        if distance < min_distance:
+            min_distance = distance
+        
+        if distance <= 3:
+            close_enemies += 1
+
+    if close_enemies >= 2:
+        for enemy in state["enemies"]:
+            enemy_x, enemy_y = enemy["pos"]
+            distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
+            
+            if distance <= min_distance:
+                if enemy_x < next_x:
+                    move = "a"
+                elif enemy_x > next_x:
+                    move = "d"
+                elif enemy_y < next_y:
+                    move = "w"
+                elif enemy_y > next_y:
+                    move = "s"
+    return move
+
+
 def avoid_Rock(state, next_x, next_y):
     move = None
     for rocks in state["rocks"]:
@@ -103,48 +149,44 @@ def avoid_Rock(state, next_x, next_y):
             return "w"
     return move
 
-def avoid_Fyger(state, next_x, next_y):
-    move = None
+
+def avoid_Fyger(state, next_x, next_y, mapa, digdug_x, digdug_y):
     for enemy in state["enemies"]:
         if enemy["name"] == "Fygar":
             enemy_x, enemy_y = enemy["pos"]
-            if ( # digdug esta a esquerda do inimigo
-                ((enemy_x - next_x == 0) and (enemy_y - next_y < 4) and (enemy["dir"] == 3))
+            if (
+                (abs(next_y - enemy_y) == 0)
+                and (next_x - enemy_x >= -4)
+                and (enemy["dir"] == 3)
             ):
-                return "w"
+                if digdug_y + 1 <= 23:
+                    move = "s"
+                elif digdug_y - 1 >= 0:
+                    move = "w"
+                return True, move
                 break
-            elif ( # digdug esta a direita do inimigo
-                (next_y - enemy_y == 0)
-                and (next_x - enemy_x < 4)
+            elif (
+                (abs(next_y - enemy_y) == 0)
+                and (next_x - enemy_x <= 4)
                 and (enemy["dir"] == 1)
             ):
-                return "w"
+                if digdug_y + 1 <= 23:
+                    move = "s"
+                elif digdug_y - 1 >= 0:
+                    move = "w"
+                return True, move
                 break
-            elif ( # digdug esta em cima do inimigo
-                (next_x - enemy_x == 0)
-                and (enemy_y - next_y < 4)
-                and (enemy["dir"] == 0)
-            ):
-                return "a"
-                break
-            elif ( # digdug esta em baixo do inimigo
-                (next_x - enemy_x == 0)
-                and (next_y - enemy_y < 4)
-                and (enemy["dir"] == 2)
-            ):
-                return "a"
-                break
-    return move
+    return False, None
+
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     enemydir = state["enemies"][enemy]["dir"]
-    enemy_name = state["enemies"][enemy]["name"]
     # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
     # ver se inimigo tem uma parede a frente
     if (
         enemydir == 0
-        and enemy_y + 4 <= 23
+        and enemy_y + 3 <= 23
         and enemy_y - 1 >= 0
         and mapa[enemy_x][enemy_y - 1] == 1
     ):  # cima
@@ -152,21 +194,21 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     elif (
         enemydir == 1
         and enemy_x + 1 <= 47
-        and enemy_x - 4 > 0
+        and enemy_x - 3 > 0
         and mapa[enemy_x + 1][enemy_y] == 1
     ):  # direita
         enemy_x -= 3
     elif (
         enemydir == 2
+        and enemy_y - 3 > 0
         and enemy_y + 1 <= 23
-        and enemy_y - 4 > 0
         and mapa[enemy_x][enemy_y + 1] == 1
     ):  # baixo
         enemy_y -= 3
     elif (
         enemydir == 3
+        and enemy_x + 3 <= 47
         and enemy_x - 1 >= 0
-        and enemy_x + 4 <= 47
         and mapa[enemy_x - 1][enemy_y] == 1
     ):  # esquerda
         enemy_x += 3
@@ -206,55 +248,47 @@ def nearest_distance(state, mapa):
     return nearest_enemy
 
 
-def param_algoritmo(state):
-    digdug_x, digdug_y = state["digdug"]
-    personagens = {"digdug": (digdug_x, digdug_y)}
-    for enemy in state["enemies"]:
-        enemy_x, enemy_y = enemy["pos"]
-        personagens[enemy["id"]] = (enemy_x, enemy_y)
-
+def param_algoritmo(state, enemies):
     # Tamanho da matriz
     linhas = 48
     colunas = 24
 
     # Lista para armazenar os movimentos no formato [(<inicio>, <fim>, 1)]
     possible_moves = []
-
-    # Adicionar movimentos para cima
-    for linha in range(linhas):
-        for coluna in range(colunas):
-            if linha > 0:
-                inicio = str((linha, coluna))
-                fim = str((linha - 1, coluna))
-                possible_moves.append((inicio, fim, 1))
-
-    # Adicionar movimentos para baixo
-    for linha in range(linhas):
-        for coluna in range(colunas):
-            if linha < linhas - 1:
-                inicio = str((linha, coluna))
-                fim = str((linha + 1, coluna))
-                possible_moves.append((inicio, fim, 1))
-
-    # Adicionar movimentos para a esquerda
-    for linha in range(linhas):
-        for coluna in range(colunas):
-            if coluna > 0:
-                inicio = str((linha, coluna))
-                fim = str((linha, coluna - 1))
-                possible_moves.append((inicio, fim, 1))
-
-    # Adicionar movimentos para a direita
-    for linha in range(linhas):
-        for coluna in range(colunas):
-            if coluna < colunas - 1:
-                inicio = str((linha, coluna))
-                fim = str((linha, coluna + 1))
-                possible_moves.append((inicio, fim, 1))
-
+    # Dicionario para armazenar as coordenadas no formato {"(x, y)": (x, y)}
     coordenadas = {}
+
+    # Coordenads inimigos
+    coordenadas_enemies = []
+    for enemy in enemies:
+        enemy_x, enemy_y = enemy["pos"]
+        coordenadas_enemies.append([enemy_x, enemy_y])
+
     for linha in range(linhas):
         for coluna in range(colunas):
+            # Adicionar movimentos para cima
+            inicio = str((linha, coluna))
+            if linha > 0:
+                fim = str((linha - 1, coluna))
+
+                if [linha - 1, coluna] not in coordenadas_enemies:
+                    possible_moves.append((inicio, fim, 1))
+            # Adicionar movimentos para baixo
+            if linha < linhas - 1:
+                fim = str((linha + 1, coluna))
+                if [linha + 1, coluna] not in coordenadas_enemies:
+                    possible_moves.append((inicio, fim, 1))
+            # Adicionar movimentos para a esquerda
+            if coluna > 0:
+                fim = str((linha, coluna - 1))
+                if [linha, coluna - 1] not in coordenadas_enemies:
+                    possible_moves.append((inicio, fim, 1))
+            # Adicionar movimentos para a direita
+            if coluna < colunas - 1:
+                fim = str((linha, coluna + 1))
+                if [linha, coluna + 1] not in coordenadas_enemies:
+                    possible_moves.append((inicio, fim, 1))
+
             coordenada = (linha, coluna)
             coordenada_str = f"({linha}, {coluna})"
             coordenadas[coordenada_str] = coordenada
