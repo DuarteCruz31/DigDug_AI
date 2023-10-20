@@ -31,7 +31,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if "enemies" not in state or len(state["enemies"]) == 0:
                     continue
 
-                mapa[state["digdug"][0]][state["digdug"][1]] = 0
+                digdug_x, digdug_y = state["digdug"]
+
+                mapa[digdug_x][digdug_y] = 0
 
                 possible_movimentos = param_algoritmo(state, state["enemies"])
 
@@ -46,13 +48,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
-
-                    digdug_x, digdug_y = state["digdug"]
-                    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-                    enemy_dir = state["enemies"][nearest_enemy]["dir"]
                     next_x, next_y = nextStep[0], nextStep[1]
 
+                    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+                    enemy_dir = state["enemies"][nearest_enemy]["dir"]
+
                     if avoid_Fyger(state, next_x, next_y, mapa):
+                        continue
+
+                    avoid_rock, move = avoid_Rocks(
+                        state, next_x, next_y, digdug_x, digdug_y
+                    )
+                    if avoid_rock:
+                        await websocket.send(json.dumps({"cmd": "key", "key": move}))
                         continue
 
                     # Problema aqui
@@ -64,18 +72,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         continue
                     # Problema aqui
-                    elif abs(digdug_x - enemy_x) == 0 and digdug_y < enemy_y:
-                        await websocket.send(json.dumps({"cmd": "key", "key": "s"}))
-                        continue
-                    elif abs(digdug_x - enemy_x) == 0 and digdug_y > enemy_y:
-                        await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
-                        continue
-                    elif abs(digdug_y - enemy_y) == 0 and digdug_x < enemy_x:
-                        await websocket.send(json.dumps({"cmd": "key", "key": "d"}))
-                        continue
-                    elif abs(digdug_y - enemy_y) == 0 and digdug_x > enemy_x:
-                        await websocket.send(json.dumps({"cmd": "key", "key": "a"}))
-                        continue
+
                     elif digdug_x < next_x:
                         await websocket.send(json.dumps({"cmd": "key", "key": "d"}))
                         continue
@@ -103,22 +100,13 @@ def avoid_Fyger(state, next_x, next_y, mapa):
             enemy_x, enemy_y = enemy["pos"]
             dist_x = next_x - enemy_x
             dist_y = next_y - enemy_y
+            if abs(dist_y) != 0:
+                return False
             if (
-                (
-                    (abs(dist_y) == 0)
-                    and (dist_x >= -3)
-                    and (dist_x <= 0)
-                    and (enemy["dir"] == 3)
-                )
+                ((0 >= dist_x >= -3) and (enemy["dir"] == 3))
+                or ((0 <= dist_x <= 3) and (enemy["dir"] == 1))
                 or (
-                    (abs(dist_y) == 0)
-                    and (dist_x <= 3)
-                    and (dist_x >= 0)
-                    and (enemy["dir"] == 1)
-                )
-                or (
-                    (abs(dist_y) == 0)
-                    and (enemy_x + 1 <= colunas - 1)
+                    (enemy_x + 1 <= colunas - 1)
                     and (enemy_x - 1 >= 0)
                     and (
                         mapa[enemy_x + 1][enemy_y] == 1
@@ -131,9 +119,20 @@ def avoid_Fyger(state, next_x, next_y, mapa):
     return False
 
 
-# TODO: Verificar se o inimigo esta a frente de uma pedra
-def avoid_Rocks(state, next_x, next_y, mapa):
-    pass
+def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
+    move = None
+    for rocks in state["rocks"]:
+        rock_x, rock_y = rocks["pos"]
+        if rock_x == next_x and rock_y == next_y:
+            if rock_x == digdug_x + 1:
+                return True, "w"
+            elif rock_x == digdug_x - 1:
+                return True, "s"
+            elif rock_y == digdug_y + 1:
+                return True, "a"
+            elif rock_y == digdug_y - 1:
+                return True, "d"
+    return False, move
 
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
@@ -169,13 +168,13 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and mapa[enemy_x - 1][enemy_y] == 1
     ):  # esquerda
         enemy_x += 3
-    if enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
+    elif enemy_dir == 0 and enemy_y + 3 <= linhas - 1:  # cima
         enemy_y += 2
-    elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
+    elif enemy_dir == 1 and enemy_x - 3 >= 0:  # direita
         enemy_x -= 2
-    elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
+    elif enemy_dir == 2 and enemy_y - 3 >= 0:  # baixo
         enemy_y -= 2
-    elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
+    elif enemy_dir == 3 and enemy_x + 3 <= colunas - 1:  # esquerda
         enemy_x += 2
 
     p = SearchProblem(
@@ -192,12 +191,6 @@ def param_algoritmo(state, enemies):
     linhass = 48
     colunass = 24
 
-    # Coordenads inimigos
-    coordenadas_enemies = []
-    for enemy in enemies:
-        enemy_x, enemy_y = enemy["pos"]
-        coordenadas_enemies.append([enemy_x, enemy_y])
-
     # Lista para armazenar os movimentos no formato ("(x_inicial, y_inicial)", "(x_final, y_final)", 1)
     possible_moves = []
     # Dicionario para armazenar as coordenadas no formato {"(x, y)": (x, y)}
@@ -209,28 +202,19 @@ def param_algoritmo(state, enemies):
             inicio = str((linha, coluna))
             if linha > 0:
                 fim = str((linha - 1, coluna))
-                fimList = [linha - 1, coluna]
-
-                if fimList not in coordenadas_enemies:
-                    possible_moves.append((inicio, fim, 1))
+                possible_moves.append((inicio, fim, 1))
             # Adicionar movimentos para baixo
             if linha < linhass - 1:
                 fim = str((linha + 1, coluna))
-                fimList = [linha + 1, coluna]
-                if fimList not in coordenadas_enemies:
-                    possible_moves.append((inicio, fim, 1))
+                possible_moves.append((inicio, fim, 1))
             # Adicionar movimentos para a esquerda
             if coluna > 0:
                 fim = str((linha, coluna - 1))
-                fimList = [linha, coluna - 1]
-                if fimList not in coordenadas_enemies:
-                    possible_moves.append((inicio, fim, 1))
+                possible_moves.append((inicio, fim, 1))
             # Adicionar movimentos para a direita
             if coluna < colunass - 1:
                 fim = str((linha, coluna + 1))
-                fimList = [linha, coluna + 1]
-                if fimList not in coordenadas_enemies:
-                    possible_moves.append((inicio, fim, 1))
+                possible_moves.append((inicio, fim, 1))
 
             coordenada = (linha, coluna)
             coordenada_str = f"({linha}, {coluna})"
