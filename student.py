@@ -61,7 +61,24 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     )
                     if avoid_rock:
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
-                        continue
+                    
+                    # Avoid getting in front of fygar
+                    avoid_Fygers, move = avoid_Fyger(
+                        state, next_x, next_y, mapa, digdug_x, digdug_y
+                    )
+                    if avoid_Fygers:
+                        await websocket.send(json.dumps({"cmd": "key", "key": move}))
+
+                    # Too many enemies too close
+                    too_many_enemies = too_many_enemies_too_close(
+                        state, next_x, next_y
+                    )
+                    if too_many_enemies is not None:
+                        print("Too many enemies too close")
+                        """ await websocket.send(
+                            json.dumps({"cmd": "key", "key": too_many_enemies})
+                        )
+                        continue """
 
                     # Problema aqui
                     if (
@@ -92,6 +109,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
+
 
 
 def avoid_Fyger(state, next_x, next_y, mapa):
@@ -133,6 +151,41 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
             elif rock_y == digdug_y - 1:
                 return True, "d"
     return False, move
+
+            
+def calculate_distance(x1, y1, x2, y2):
+    return abs(x1 - x2) + abs(y1 - y2)
+
+def too_many_enemies_too_close(state, next_x, next_y):
+    move = None
+    min_distance = float("inf")
+    close_enemies = 0
+
+    for enemy in state["enemies"]:
+        enemy_x, enemy_y = enemy["pos"]
+        distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
+
+        if distance < min_distance:
+            min_distance = distance
+        
+        if distance <= 3:
+            close_enemies += 1
+
+    if close_enemies >= 2:
+        for enemy in state["enemies"]:
+            enemy_x, enemy_y = enemy["pos"]
+            distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
+            
+            if distance <= min_distance:
+                if enemy_x < next_x:
+                    move = "a"
+                elif enemy_x > next_x:
+                    move = "d"
+                elif enemy_y < next_y:
+                    move = "w"
+                elif enemy_y > next_y:
+                    move = "s"
+    return move
 
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
@@ -214,7 +267,8 @@ def param_algoritmo(state, enemies):
             # Adicionar movimentos para a direita
             if coluna < colunass - 1:
                 fim = str((linha, coluna + 1))
-                possible_moves.append((inicio, fim, 1))
+                if [linha, coluna + 1] not in coordenadas_enemies:
+                    possible_moves.append((inicio, fim, 1))
 
             coordenada = (linha, coluna)
             coordenada_str = f"({linha}, {coluna})"
