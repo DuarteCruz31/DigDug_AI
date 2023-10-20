@@ -12,15 +12,14 @@ possible_movimentos = None
 mapa = None
 linhas = 24
 colunas = 48
-last_move = None
-
 
 async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
-
+        last_move = None
         while True:
             try:
+                print(last_move)
                 state = json.loads(await websocket.recv())
 
                 if "map" in state:
@@ -76,20 +75,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         )
                         continue """
 
-                    # Problema aqui
-                    if (
-                        abs(digdug_x - enemy_x) <= 2
-                        and abs(digdug_y - enemy_y) == 0
-                        # and can_shoot(state, mapa, last_move, nearest_enemy)
-                    ) or (
-                        abs(digdug_y - enemy_y) <= 2
-                        and abs(digdug_x - enemy_x) == 0
-                        # and can_shoot(state, mapa, last_move, nearest_enemy)
-                    ):
+                    if can_shoot(state, mapa, last_move, nearest_enemy):
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
-                    # Problema aqui
 
                     elif digdug_x < next_x:
                         await websocket.send(json.dumps({"cmd": "key", "key": "d"}))
@@ -116,28 +105,38 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 print("Server has cleanly disconnected us")
                 return
 
-
 def can_shoot(state, mapa, last_move, nearest_enemy):
+    shooting_distance = 2
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
     if last_move == "d":
-        if enemy_x > digdug_x and enemy_y == digdug_y:
+        if (enemy_x > digdug_x 
+            and enemy_y == digdug_y 
+            and enemy_x - digdug_x <= shooting_distance
+            and mapa[digdug_x + 1][digdug_y] == 0
+            and mapa[digdug_x + 2][digdug_y] == 0):
             return True
-
     elif last_move == "a":
-        if enemy_x < digdug_x and enemy_y == digdug_y:
+        if (enemy_x < digdug_x 
+            and enemy_y == digdug_y
+            and digdug_x - enemy_x <= shooting_distance
+            and mapa[digdug_x - 1][digdug_y] == 0
+            and mapa[digdug_x - 2][digdug_y] == 0):
             return True
-
     elif last_move == "w":
-        if enemy_y < digdug_y and enemy_x == digdug_x:
+        if (enemy_y < digdug_y 
+            and enemy_x == digdug_x
+            and digdug_y - enemy_y <= shooting_distance
+            and mapa[digdug_x][digdug_y - 1] == 0
+            and mapa[digdug_x][digdug_y - 2] == 0):
             return True
-
     elif last_move == "s":
-        if enemy_y > digdug_y and enemy_x == digdug_x:
+        if (enemy_y > digdug_y 
+            and enemy_x == digdug_x
+            and enemy_y - digdug_y <= shooting_distance
+            and mapa[digdug_x][digdug_y + 1] == 0):
             return True
-
     return False
-
 
 def avoid_Fyger(state, next_x, next_y, mapa):
     for enemy in state["enemies"]:
