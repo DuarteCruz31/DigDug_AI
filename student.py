@@ -74,12 +74,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             json.dumps({"cmd": "key", "key": too_many_enemies})
                         )
                         continue """
-
                     if can_shoot(state, mapa, last_move, nearest_enemy):
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
-
                     elif digdug_x < next_x:
                         await websocket.send(json.dumps({"cmd": "key", "key": "d"}))
                         last_move = "d"
