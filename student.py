@@ -19,7 +19,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         last_move = None
         while True:
             try:
-                print(last_move)
                 state = json.loads(await websocket.recv())
 
                 if "map" in state:
@@ -54,18 +53,17 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
                     enemy_dir = state["enemies"][nearest_enemy]["dir"]
 
-                    if avoid_Fyger(state, next_x, next_y, mapa):
-                        continue
-
                     avoid_rock, move = avoid_Rocks(
                         state, next_x, next_y, digdug_x, digdug_y
                     )
                     if avoid_rock:
+                        print("Avoiding rock")
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
 
                     # Avoid getting in front of fygar
                     if avoid_Fyger(state, next_x, next_y, mapa):
-                        continue
+                        print("Avoiding fygar")
+
                     # Too many enemies too close
                     too_many_enemies = too_many_enemies_too_close(state, next_x, next_y)
                     if too_many_enemies is not None:
@@ -75,6 +73,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         )
                         continue """
                     if can_shoot(state, mapa, last_move, nearest_enemy):
+                        print("Can shoot")
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
@@ -104,7 +103,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 return
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
-    shooting_distance = 2
+    shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
     if last_move == "d":
@@ -130,6 +129,30 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             return True
     elif last_move == "s":
         if (enemy_y > digdug_y 
+            and enemy_x == digdug_x
+            and enemy_y - digdug_y <= shooting_distance
+            and mapa[digdug_x][digdug_y + 1] == 0):
+            return True
+    elif last_move == "A":
+        if (enemy_x > digdug_x 
+            and enemy_y == digdug_y 
+            and enemy_x - digdug_x <= shooting_distance
+            and mapa[digdug_x + 1][digdug_y] == 0
+            and mapa[digdug_x + 2][digdug_y] == 0):
+            return True
+        elif (enemy_x < digdug_x 
+            and enemy_y == digdug_y
+            and digdug_x - enemy_x <= shooting_distance
+            and mapa[digdug_x - 1][digdug_y] == 0
+            and mapa[digdug_x - 2][digdug_y] == 0):
+            return True
+        elif (enemy_y < digdug_y 
+            and enemy_x == digdug_x
+            and digdug_y - enemy_y <= shooting_distance
+            and mapa[digdug_x][digdug_y - 1] == 0
+            and mapa[digdug_x][digdug_y - 2] == 0):
+            return True
+        elif (enemy_y > digdug_y 
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
             and mapa[digdug_x][digdug_y + 1] == 0):
