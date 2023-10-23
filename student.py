@@ -93,10 +93,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
                         last_move = "w"
                         continue
-                else:
-                    await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
-                    last_move = "A"
-                    continue
 
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
@@ -104,7 +100,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
-    print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -117,6 +112,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
         ):
+            print("Can shoot")
             return True
     elif last_move == "a": # ultima jogada foi para a esquerda e o inimigo esta a esquerda
         if (
@@ -250,7 +246,7 @@ def too_many_enemies_too_close(state, next_x, next_y):
     if len(close_enemies) >= 2:
         for enemy in state["enemies"]:
             if enemy not in close_enemies:
-                return state["enemy"].index(enemy)
+                return state["enemies"].index(enemy)
     return None
 
 
