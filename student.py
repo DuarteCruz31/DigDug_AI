@@ -218,13 +218,13 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
     for rocks in state["rocks"]:
         rock_x, rock_y = rocks["pos"]
         if rock_x == next_x and rock_y == next_y:
-            if rock_x == digdug_x + 1:
+            if rock_x == digdug_x + 1: # se a rocha esta a direita do digdug
                 return True, "w"
-            elif rock_x == digdug_x - 1:
+            elif rock_x == digdug_x - 1: # se a rocha esta a esquerda do digdug
                 return True, "s"
-            elif rock_y == digdug_y + 1:
+            elif rock_y == digdug_y + 1: # se a rocha esta abaixo do digdug
                 return True, "a"
-            elif rock_y == digdug_y - 1:
+            elif rock_y == digdug_y - 1: # se a rocha esta acima do digdug
                 return True, "d"
     return False, move
 
