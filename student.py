@@ -40,6 +40,13 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if nearest_enemy is None:
                     continue
 
+                # Too many enemies too close
+                too_many_enemies = too_many_enemies_too_close(state, digdug_x, digdug_y)
+                if too_many_enemies is not None:
+                    print("Too many enemies too close")
+                    nearest_enemy = too_many_enemies
+                    print(nearest_enemy)
+
                 possible_movimentos = param_algoritmo(state, state["enemies"])
 
                 acao = algoritmo_search(
@@ -66,16 +73,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         print("Avoiding fygar")
                         continue
 
-                    # Too many enemies too close
-                    too_many_enemies = too_many_enemies_too_close(state, next_x, next_y)
-                    if too_many_enemies is not None:
-                        print("Too many enemies too close")
-                        """ await websocket.send(
-                            json.dumps({"cmd": "key", "key": too_many_enemies})
-                        )
-                        continue """
                     if can_shoot(state, mapa, last_move, nearest_enemy):
-                        print("Can shoot")
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
@@ -106,74 +104,85 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
+    print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    if last_move == "d":
+    if last_move == "d": # ultima jogada foi para a direita e o inimigo esta a direita
         if (
             enemy_x > digdug_x
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= shooting_distance
-            and mapa[digdug_x + 1][digdug_y] == 0
-            and mapa[digdug_x + 2][digdug_y] == 0
+            and mapa[enemy_x - 1][digdug_y] == 0
+            and mapa[enemy_x - 2][digdug_y] == 0
+            and mapa[enemy_x - 3][digdug_y] == 0
         ):
             return True
-    elif last_move == "a":
+    elif last_move == "a": # ultima jogada foi para a esquerda e o inimigo esta a esquerda
         if (
             enemy_x < digdug_x
             and enemy_y == digdug_y
             and digdug_x - enemy_x <= shooting_distance
-            and mapa[digdug_x - 1][digdug_y] == 0
-            and mapa[digdug_x - 2][digdug_y] == 0
+            and mapa[enemy_x + 1][digdug_y] == 0
+            and mapa[enemy_x + 2][digdug_y] == 0
+            and mapa[enemy_x + 3][digdug_y] == 0
         ):
             return True
-    elif last_move == "w":
+    elif last_move == "w": # ultima jogada foi para cima e o inimigo esta acima
         if (
             enemy_y < digdug_y
             and enemy_x == digdug_x
             and digdug_y - enemy_y <= shooting_distance
-            and mapa[digdug_x][digdug_y - 1] == 0
-            and mapa[digdug_x][digdug_y - 2] == 0
+            and mapa[digdug_x][enemy_y + 1] == 0
+            and mapa[digdug_x][enemy_y + 2] == 0
+            and mapa[digdug_x][enemy_y + 3] == 0
         ):
             return True
-    elif last_move == "s":
+    elif last_move == "s": # ultima jogada foi para baixo e o inimigo esta abaixo
         if (
             enemy_y > digdug_y
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
-            and mapa[digdug_x][digdug_y + 1] == 0
+            and mapa[digdug_x][enemy_y - 1] == 0
+            and mapa[digdug_x][enemy_y - 2] == 0
+            and mapa[digdug_x][enemy_y - 3] == 0
         ):
             return True
-    elif last_move == "A":
+    elif last_move == "A": # ultima jogada foi para atirar
         if (
             enemy_x > digdug_x
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= shooting_distance
-            and mapa[digdug_x + 1][digdug_y] == 0
-            and mapa[digdug_x + 2][digdug_y] == 0
+            and mapa[enemy_x - 1][digdug_y] == 0
+            and mapa[enemy_x - 2][digdug_y] == 0
+            and mapa[enemy_x - 3][digdug_y] == 0
         ):
             return True
         elif (
             enemy_x < digdug_x
             and enemy_y == digdug_y
             and digdug_x - enemy_x <= shooting_distance
-            and mapa[digdug_x - 1][digdug_y] == 0
-            and mapa[digdug_x - 2][digdug_y] == 0
+            and mapa[enemy_x + 1][digdug_y] == 0
+            and mapa[enemy_x + 2][digdug_y] == 0
+            and mapa[enemy_x + 3][digdug_y] == 0
         ):
             return True
         elif (
             enemy_y < digdug_y
             and enemy_x == digdug_x
             and digdug_y - enemy_y <= shooting_distance
-            and mapa[digdug_x][digdug_y - 1] == 0
-            and mapa[digdug_x][digdug_y - 2] == 0
+            and mapa[digdug_x][enemy_y + 1] == 0
+            and mapa[digdug_x][enemy_y + 2] == 0
+            and mapa[digdug_x][enemy_y + 3] == 0
         ):
             return True
         elif (
             enemy_y > digdug_y
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
-            and mapa[digdug_x][digdug_y + 1] == 0
+            and mapa[digdug_x][enemy_y - 1] == 0
+            and mapa[digdug_x][enemy_y - 2] == 0
+            and mapa[digdug_x][enemy_y - 3] == 0
         ):
             return True
     return False
@@ -225,9 +234,8 @@ def calculate_distance(x1, y1, x2, y2):
 
 
 def too_many_enemies_too_close(state, next_x, next_y):
-    move = None
     min_distance = float("inf")
-    close_enemies = 0
+    close_enemies = []
 
     for enemy in state["enemies"]:
         enemy_x, enemy_y = enemy["pos"]
@@ -237,23 +245,13 @@ def too_many_enemies_too_close(state, next_x, next_y):
             min_distance = distance
 
         if distance <= 3:
-            close_enemies += 1
+            close_enemies.append(enemy)
 
-    if close_enemies >= 2:
+    if len(close_enemies) >= 2:
         for enemy in state["enemies"]:
-            enemy_x, enemy_y = enemy["pos"]
-            distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
-
-            if distance <= min_distance:
-                if enemy_x < next_x:
-                    move = "a"
-                elif enemy_x > next_x:
-                    move = "d"
-                elif enemy_y < next_y:
-                    move = "w"
-                elif enemy_y > next_y:
-                    move = "s"
-    return move
+            if enemy not in close_enemies:
+                return state["enemy"].index(enemy)
+    return None
 
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
