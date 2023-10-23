@@ -1,14 +1,45 @@
-{'level': 1, 'step': 12, 'timeout': 3000, 'player': 'duartecruz', 'score': 0, 'lives': 3, 'digdug': [12, 1], 
-'enemies': [{'name': 'Fygar', 'id': '70d17cd9-42f4-4507-b53c-cc8e44d6a69c', 'pos': [15, 8], 'dir': 3}, 
-{'name': 'Pooka', 'id': '94d664bc-7b1f-4ce7-a51f-bbb222904648', 'pos': [45, 4], 'dir': 2}, 
-{'name': 'Pooka', 'id': '33aae1a9-6bbd-4010-bd4c-d5494a10f501', 'pos': [13, 20], 'dir': 3}], 
-'rocks': [{'id': '501db113-243f-457e-8387-4d8b052704f9', 'pos': [16, 8]}]}
+{
+  'level': 3, 
+  'step': 52, 
+  'timeout': 3000, 
+  'player': 'andreoliveira', 
+  'score': 3500, 
+  'lives': 2, 
+  'digdug': [33, 11], 
+  'enemies': [
+    {
+      'name': 'Fygar', 
+      'id': '47754120-ceeb-48ec-bfc9-5cfc983108d9', 
+      'pos': [35, 11], 
+      'dir': 1, 
+      'fire': [[36, 11], [37, 11], [38, 11]]
+    }, 
+    {
+      'name': 'Pooka', 
+      'id': 'a7af9ee1-603d-4a15-9423-45310b37b152', 
+      'pos': [28, 15], 
+      'dir': 1
+    }, 
+    {
+      'name': 
+      'Pooka', 
+      'id': 'f9b2d42f-04fd-4f65-841b-a0da327be5a6', 
+      'pos': [40, 18], 
+      'dir': 2
+      }
+  ], 
+  'rocks': [
+    {
+      'id': 'a9f10d0a-d013-46a4-8bd9-788b9cbe5303', 
+      'pos': [14, 11]
+    }
+  ]
+}
 
-
-baixo - 2
-direita - 1
-esquerda - 3
-cima - 0
+cima = 0
+direita = 1
+baixo = 2
+esquerda = 3
 
 
 [[0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 

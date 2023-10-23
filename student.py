@@ -18,13 +18,15 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
+        possible_movimentos = param_algoritmo()
         while True:
             try:
                 state = json.loads(await websocket.recv())
 
                 if "map" in state:
-                    i = 0
                     mapa = state["map"]
+
+                print(state)
 
                 if "digdug" not in state or len(state["digdug"]) == 0:
                     continue
@@ -43,11 +45,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 # Too many enemies too close
                 too_many_enemies = too_many_enemies_too_close(state, digdug_x, digdug_y)
                 if too_many_enemies is not None:
-                    print("Too many enemies too close")
                     nearest_enemy = too_many_enemies
-                    print(nearest_enemy)
-
-                possible_movimentos = param_algoritmo(state, state["enemies"])
 
                 acao = algoritmo_search(
                     possible_movimentos, state, nearest_enemy, "greedy", mapa
@@ -103,7 +101,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    if last_move == "d": # ultima jogada foi para a direita e o inimigo esta a direita
+    if last_move == "d":  # ultima jogada foi para a direita e o inimigo esta a direita
         if (
             enemy_x > digdug_x
             and enemy_y == digdug_y
@@ -114,7 +112,9 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
         ):
             print("Can shoot")
             return True
-    elif last_move == "a": # ultima jogada foi para a esquerda e o inimigo esta a esquerda
+    elif (
+        last_move == "a"
+    ):  # ultima jogada foi para a esquerda e o inimigo esta a esquerda
         if (
             enemy_x < digdug_x
             and enemy_y == digdug_y
@@ -124,7 +124,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 3][digdug_y] == 0
         ):
             return True
-    elif last_move == "w": # ultima jogada foi para cima e o inimigo esta acima
+    elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
         if (
             enemy_y < digdug_y
             and enemy_x == digdug_x
@@ -134,7 +134,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 3] == 0
         ):
             return True
-    elif last_move == "s": # ultima jogada foi para baixo e o inimigo esta abaixo
+    elif last_move == "s":  # ultima jogada foi para baixo e o inimigo esta abaixo
         if (
             enemy_y > digdug_y
             and enemy_x == digdug_x
@@ -144,7 +144,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 3] == 0
         ):
             return True
-    elif last_move == "A": # ultima jogada foi para atirar
+    elif last_move == "A":  # ultima jogada foi para atirar
         if (
             enemy_x > digdug_x
             and enemy_y == digdug_y
@@ -214,13 +214,13 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
     for rocks in state["rocks"]:
         rock_x, rock_y = rocks["pos"]
         if rock_x == next_x and rock_y == next_y:
-            if rock_x == digdug_x + 1: # se a rocha esta a direita do digdug
+            if rock_x == digdug_x + 1:  # se a rocha esta a direita do digdug
                 return True, "w"
-            elif rock_x == digdug_x - 1: # se a rocha esta a esquerda do digdug
+            elif rock_x == digdug_x - 1:  # se a rocha esta a esquerda do digdug
                 return True, "s"
-            elif rock_y == digdug_y + 1: # se a rocha esta abaixo do digdug
+            elif rock_y == digdug_y + 1:  # se a rocha esta abaixo do digdug
                 return True, "a"
-            elif rock_y == digdug_y - 1: # se a rocha esta acima do digdug
+            elif rock_y == digdug_y - 1:  # se a rocha esta acima do digdug
                 return True, "d"
     return False, move
 
@@ -302,7 +302,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     return t.search()
 
 
-def param_algoritmo(state, enemies):
+def param_algoritmo():
     linhass = 48
     colunass = 24
 
