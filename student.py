@@ -26,8 +26,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if "map" in state:
                     mapa = state["map"]
 
-                print(state)
-
                 if "digdug" not in state or len(state["digdug"]) == 0:
                     continue
 
@@ -98,6 +96,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
+    print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -110,7 +109,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
         ):
-            print("Can shoot")
             return True
     elif (
         last_move == "a"
