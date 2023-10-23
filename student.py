@@ -18,13 +18,15 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
+        possible_movimentos = param_algoritmo()
         while True:
             try:
                 state = json.loads(await websocket.recv())
 
                 if "map" in state:
-                    i = 0
                     mapa = state["map"]
+
+                print(state)
 
                 if "digdug" not in state or len(state["digdug"]) == 0:
                     continue
@@ -43,11 +45,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 # Too many enemies too close
                 too_many_enemies = too_many_enemies_too_close(state, digdug_x, digdug_y)
                 if too_many_enemies is not None:
-                    print("Too many enemies too close")
                     nearest_enemy = too_many_enemies
-                    print(nearest_enemy)
-
-                possible_movimentos = param_algoritmo(state, state["enemies"])
 
                 acao = algoritmo_search(
                     possible_movimentos, state, nearest_enemy, "greedy", mapa
@@ -104,7 +102,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
-    print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -308,7 +305,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     return t.search()
 
 
-def param_algoritmo(state, enemies):
+def param_algoritmo():
     linhass = 48
     colunass = 24
 
