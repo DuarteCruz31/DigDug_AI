@@ -2,6 +2,7 @@ import asyncio
 import getpass
 import json
 import os
+import time
 import websockets
 from digdug import *
 import math
@@ -18,8 +19,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
-        possible_movimentos = param_algoritmo()
+
         while True:
+            t1 = time.time()
             try:
                 state = json.loads(await websocket.recv())
 
@@ -45,9 +47,14 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if too_many_enemies is not None:
                     nearest_enemy = too_many_enemies
 
+                possible_movimentos = param_algoritmo(mapa)
+
                 acao = algoritmo_search(
                     possible_movimentos, state, nearest_enemy, "greedy", mapa
                 )
+
+                t2 = time.time()
+                print(f"Time: {t2 - t1}")
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
@@ -300,7 +307,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     return t.search()
 
 
-def param_algoritmo():
+def param_algoritmo(mapa):
     linhass = 48
     colunass = 24
 
@@ -315,22 +322,31 @@ def param_algoritmo():
             inicio = str((linha, coluna))
             if linha > 0:
                 fim = str((linha - 1, coluna))
-                possible_moves.append((inicio, fim, 1))
+                if mapa[linha - 1][coluna] == 0:
+                    possible_moves.append((inicio, fim, 1))
+                else:
+                    possible_moves.append((inicio, fim, 100))
             # Adicionar movimentos para baixo
             if linha < linhass - 1:
                 fim = str((linha + 1, coluna))
-                fimList = [linha - 1, coluna]
-                possible_moves.append((inicio, fim, 1))
+                if mapa[linha + 1][coluna] == 0:
+                    possible_moves.append((inicio, fim, 1))
+                else:
+                    possible_moves.append((inicio, fim, 100))
             # Adicionar movimentos para a esquerda
             if coluna > 0:
                 fim = str((linha, coluna - 1))
-                fimList = [linha - 1, coluna]
-                possible_moves.append((inicio, fim, 1))
+                if mapa[linha][coluna - 1] == 0:
+                    possible_moves.append((inicio, fim, 1))
+                else:
+                    possible_moves.append((inicio, fim, 100))
             # Adicionar movimentos para a direita
             if coluna < colunass - 1:
                 fim = str((linha, coluna + 1))
-                fimList = [linha - 1, coluna]
-                possible_moves.append((inicio, fim, 1))
+                if mapa[linha][coluna + 1] == 0:
+                    possible_moves.append((inicio, fim, 1))
+                else:
+                    possible_moves.append((inicio, fim, 100))
 
             coordenada = (linha, coluna)
             coordenada_str = f"({linha}, {coluna})"
