@@ -54,7 +54,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 )
 
                 t2 = time.time()
-                print(f"Time: {t2 - t1}")
+                #print(f"Time: {t2 - t1}")
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
