@@ -1,4 +1,4 @@
 - Adicionar direções ao avoid_fygar
-- Adicionar direções ao avoid_rocks ->> acho que esta pronto
-- Adicionar direções ao too_many_enemies_too_close ->> acho que esta pronto
+- Adicionar direções ao avoid_rocks ->> pode ser melhorado
+- Adicionar direções ao too_many_enemies_too_close ->> pode ser melhorado
 - Melhorar o can shoot -->> acho que esta fixe
