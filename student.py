@@ -72,9 +72,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
 
                     # Avoid getting in front of fygar
-                    if avoid_Fyger(state, next_x, next_y, mapa):
-                        print("Avoiding fygar")
-                        continue
 
                     if can_shoot(state, mapa, last_move, nearest_enemy):
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
@@ -189,31 +186,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
     return False
 
 
-def avoid_Fyger(state, next_x, next_y, mapa):
-    for enemy in state["enemies"]:
-        if enemy["name"] == "Fygar":
-            enemy_x, enemy_y = enemy["pos"]
-            dist_x = next_x - enemy_x
-            dist_y = next_y - enemy_y
-            if abs(dist_y) != 0:
-                return False
-            if (
-                ((0 >= dist_x >= -3) and (enemy["dir"] == 3))
-                or ((0 <= dist_x <= 3) and (enemy["dir"] == 1))
-                or (
-                    (enemy_x + 1 <= colunas - 1)
-                    and (enemy_x - 1 >= 0)
-                    and (
-                        mapa[enemy_x + 1][enemy_y] == 1
-                        or mapa[enemy_x - 1][enemy_y] == 1
-                    )
-                )
-            ):
-                return True
-
-    return False
-
-
 def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
     move = None
     for rocks in state["rocks"]:
@@ -257,6 +229,8 @@ def too_many_enemies_too_close(state, next_x, next_y):
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
+    digdug_x, digdug_y = state["digdug"]
+    enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
     # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
     # ver se inimigo tem uma parede a frente
@@ -296,6 +270,31 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         enemy_y -= 2
     elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
         enemy_x += 2
+
+    #Acoes para o fygar
+    if enemy_name == "Fygar":
+        if ( # se o digdug esta a direita do fygar
+            enemy_x < digdug_x
+            and enemy_dir == 1
+            and enemy_y == digdug_y
+            and digdug_x - enemy_x <= 3
+            and mapa[enemy_x + 1][enemy_y] == 0
+            and mapa[enemy_x + 2][enemy_y] == 0
+            and mapa[enemy_x + 3][enemy_y] == 0
+        ):
+            print("fygar a direita")
+            enemy_x -= 3
+        elif (
+            enemy_x > digdug_x
+            and enemy_dir == 3
+            and enemy_y == digdug_y
+            and enemy_x - digdug_x <= 3
+            and mapa[enemy_x - 1][enemy_y] == 0
+            and mapa[enemy_x - 2][enemy_y] == 0
+            and mapa[enemy_x - 3][enemy_y] == 0
+        ):
+            print("fygar a esquerda")
+            enemy_x += 3
 
     p = SearchProblem(
         movimentos,
