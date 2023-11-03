@@ -71,15 +71,16 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             json.dumps({"cmd": "key", "key": avoid_rock})
                         )
 
-                    if too_many_enemies_too_close(state, next_x, next_y) is not None:
+                    """ if too_many_enemies_too_close(state, next_x, next_y) is not None:
                         print("Too many enemies too close")
                         move = too_many_enemies_too_close(state, next_x, next_y)
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
-                        continue
+                        continue """
 
                     # Avoid getting in front of fygar
 
                     if can_shoot(state, mapa, last_move, nearest_enemy):
+                        print("Can shoot")
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
@@ -221,15 +222,23 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
         rock_x, rock_y = rock["pos"]
         distance = abs(rock_x - digdug_x) + abs(rock_y - digdug_y)
 
-        if rock_x == next_x and rock_y == next_y and distance < min_distance:
-            if rock_x == digdug_x + 1:
-                move = "w"
-            elif rock_x == digdug_x - 1:
-                move = "s"
-            elif rock_y == digdug_y + 1:
-                move = "a"
-            elif rock_y == digdug_y - 1:
-                move = "d"
+        if rock_x == next_x and rock_y == next_y:
+            if (
+                (rock_x == digdug_x + 1 and move != "w")
+                or (rock_x == digdug_x - 1 and move != "s")
+                or (rock_y == digdug_y + 1 and move != "a")
+                or (rock_y == digdug_y - 1 and move != "d")
+            ):
+                move = None  # Evitar o movimento se a pedra cair em cima do gajo
+            else:
+                if rock_x == digdug_x + 1:
+                    move = "w"
+                elif rock_x == digdug_x - 1:
+                    move = "s"
+                elif rock_y == digdug_y + 1:
+                    move = "a"
+                elif rock_y == digdug_y - 1:
+                    move = "d"
             min_distance = distance
 
     return move
@@ -264,22 +273,29 @@ def too_many_enemies_too_close(state, next_x, next_y):
 
 def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
     if next_x <= 1 or next_x >= colunas - 3:
-        return "w"  # Próximo movimento está fora dos limites horizontais do mapa
+        return "w"
     if next_y <= 1 or next_y >= linhas - 4:
-        return "a"  # Próximo movimento está fora dos limites verticais do mapa
+        return "a"
 
-    if next_x < enemy_x:
-        move = "a"
+    if next_x == enemy_x and next_y == enemy_y:
+        if next_y > 1:
+            return "w"
+        elif next_x < colunas - 3:
+            return "d"
+        elif next_y < linhas - 4:
+            return "s"
+        else:
+            return "a"
+    elif next_x < enemy_x:
+        return "a"
     elif next_x > enemy_x:
-        move = "d"
+        return "d"
     elif next_y < enemy_y:
-        move = "w"
+        return "w"
     elif next_y > enemy_y:
-        move = "s"
+        return "s"
     else:
         return None
-
-    return move
 
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
@@ -295,7 +311,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
             and enemy_dir == 1
             and enemy_y == digdug_y
             and enemy_y - 2 >= 0
-            and digdug_x - enemy_x <= 3
+            and digdug_x - enemy_x <= 4
             and mapa[enemy_x + 1][enemy_y] == 0
             and mapa[enemy_x + 2][enemy_y] == 0
             and mapa[enemy_x + 3][enemy_y] == 0
@@ -307,7 +323,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
             and enemy_dir == 3
             and enemy_y + 2 <= linhas - 1
             and enemy_y == digdug_y
-            and enemy_x - digdug_x <= 3
+            and enemy_x - digdug_x <= 4
             and mapa[enemy_x - 1][enemy_y] == 0
             and mapa[enemy_x - 2][enemy_y] == 0
             and mapa[enemy_x - 3][enemy_y] == 0
@@ -328,7 +344,10 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and enemy_x + 1 <= colunas - 1
         and mapa[enemy_x + 1][enemy_y] == 1
     ):  # direita
-        enemy_x -= 3
+        if enemy_name == "Fygar" and enemy_x + 3 <= colunas - 1:
+            enemy_x += 3
+        else:
+            enemy_x -= 3
     elif (
         enemy_dir == 2
         and enemy_y - 3 > 0
@@ -342,15 +361,19 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and enemy_x - 1 >= 0
         and mapa[enemy_x - 1][enemy_y] == 1
     ):  # esquerda
-        enemy_x += 3
-    elif enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
-        enemy_y += 2
-    elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
-        enemy_x -= 2
-    elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
-        enemy_y -= 2
-    elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
-        enemy_x += 2
+        if enemy_name == "Fygar" and enemy_x - 3 >= 0:
+            enemy_x -= 3
+        else:
+            enemy_x += 3
+    else:
+        if enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
+            enemy_y += 2
+        elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
+            enemy_x -= 2
+        elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
+            enemy_y -= 2
+        elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
+            enemy_x += 2
 
     p = SearchProblem(
         movimentos,
@@ -421,8 +444,8 @@ def nearest_distance(state, mapa):
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
         enemy_x, enemy_y = enemy["pos"]
-        if mapa[enemy_x][enemy_y] == 1:
-            continue
+        """ if mapa[enemy_x][enemy_y] == 1:
+            continue """
 
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
