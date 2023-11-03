@@ -42,11 +42,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if nearest_enemy is None:
                     continue
 
-                # Too many enemies too close
-                too_many_enemies = too_many_enemies_too_close(state, digdug_x, digdug_y)
-                if too_many_enemies is not None:
-                    nearest_enemy = too_many_enemies
-
                 possible_movimentos = param_algoritmo(mapa)
 
                 acao = algoritmo_search(
@@ -54,7 +49,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 )
 
                 t2 = time.time()
-                #print(f"Time: {t2 - t1}")
+                # print(f"Time: {t2 - t1}")
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
@@ -64,12 +59,23 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
                     enemy_dir = state["enemies"][nearest_enemy]["dir"]
 
-                    avoid_rock, move = avoid_Rocks(
-                        state, next_x, next_y, digdug_x, digdug_y
-                    )
-                    if avoid_rock:
+                    if enemy_x == next_x and enemy_y == next_y:
+                        await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
+                        last_move = "A"
+                        continue
+
+                    avoid_rock = avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y)
+                    if avoid_rock is not None:
                         print("Avoiding rock")
+                        await websocket.send(
+                            json.dumps({"cmd": "key", "key": avoid_rock})
+                        )
+
+                    if too_many_enemies_too_close(state, next_x, next_y) is not None:
+                        print("Too many enemies too close")
+                        move = too_many_enemies_too_close(state, next_x, next_y)
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
+                        continue
 
                     # Avoid getting in front of fygar
 
@@ -77,6 +83,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
+                    if (
+                        (abs(digdug_x - enemy_x) < 3 and digdug_y == enemy_y)
+                        or (abs(digdug_y - enemy_y) < 3 and digdug_x == enemy_x)
+                        and can_shoot(state, mapa, last_move, nearest_enemy) == False
+                    ):
+                        print("Enemy too close")
+                        move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
                     elif digdug_x < next_x:
                         await websocket.send(json.dumps({"cmd": "key", "key": "d"}))
                         last_move = "d"
@@ -109,6 +128,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_x > digdug_x
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= shooting_distance
+            and enemy_x - 3 >= 0
             and mapa[enemy_x - 1][digdug_y] == 0
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
@@ -121,6 +141,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_x < digdug_x
             and enemy_y == digdug_y
             and digdug_x - enemy_x <= shooting_distance
+            and enemy_x + 3 <= colunas - 1
             and mapa[enemy_x + 1][digdug_y] == 0
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
@@ -131,6 +152,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_y < digdug_y
             and enemy_x == digdug_x
             and digdug_y - enemy_y <= shooting_distance
+            and enemy_y + 3 <= linhas - 1
             and mapa[digdug_x][enemy_y + 1] == 0
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
@@ -141,6 +163,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_y > digdug_y
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
+            and enemy_y - 3 >= 0
             and mapa[digdug_x][enemy_y - 1] == 0
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
@@ -151,6 +174,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_x > digdug_x
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= shooting_distance
+            and enemy_x - 3 >= 0
             and mapa[enemy_x - 1][digdug_y] == 0
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
@@ -160,6 +184,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_x < digdug_x
             and enemy_y == digdug_y
             and digdug_x - enemy_x <= shooting_distance
+            and enemy_x + 3 <= colunas - 1
             and mapa[enemy_x + 1][digdug_y] == 0
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
@@ -169,6 +194,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_y < digdug_y
             and enemy_x == digdug_x
             and digdug_y - enemy_y <= shooting_distance
+            and enemy_y + 3 <= linhas - 1
             and mapa[digdug_x][enemy_y + 1] == 0
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
@@ -178,6 +204,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             enemy_y > digdug_y
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
+            and enemy_y - 3 >= 0
             and mapa[digdug_x][enemy_y - 1] == 0
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
@@ -187,19 +214,25 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
 
 
 def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
+    min_distance = float("inf")
     move = None
-    for rocks in state["rocks"]:
-        rock_x, rock_y = rocks["pos"]
-        if rock_x == next_x and rock_y == next_y:
-            if rock_x == digdug_x + 1:  # se a rocha esta a direita do digdug
-                return True, "w"
-            elif rock_x == digdug_x - 1:  # se a rocha esta a esquerda do digdug
-                return True, "s"
-            elif rock_y == digdug_y + 1:  # se a rocha esta abaixo do digdug
-                return True, "a"
-            elif rock_y == digdug_y - 1:  # se a rocha esta acima do digdug
-                return True, "d"
-    return False, move
+
+    for rock in state["rocks"]:
+        rock_x, rock_y = rock["pos"]
+        distance = abs(rock_x - digdug_x) + abs(rock_y - digdug_y)
+
+        if rock_x == next_x and rock_y == next_y and distance < min_distance:
+            if rock_x == digdug_x + 1:
+                move = "w"
+            elif rock_x == digdug_x - 1:
+                move = "s"
+            elif rock_y == digdug_y + 1:
+                move = "a"
+            elif rock_y == digdug_y - 1:
+                move = "d"
+            min_distance = distance
+
+    return move
 
 
 def calculate_distance(x1, y1, x2, y2):
@@ -221,10 +254,32 @@ def too_many_enemies_too_close(state, next_x, next_y):
             close_enemies.append(enemy)
 
     if len(close_enemies) >= 2:
-        for enemy in state["enemies"]:
-            if enemy not in close_enemies:
-                return state["enemies"].index(enemy)
+        for enemy in close_enemies:
+            enemy_x, enemy_y = enemy["pos"]
+            move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
+            if move is not None:
+                return move
     return None
+
+
+def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
+    if next_x <= 1 or next_x >= colunas - 3:
+        return "w"  # Próximo movimento está fora dos limites horizontais do mapa
+    if next_y <= 1 or next_y >= linhas - 4:
+        return "a"  # Próximo movimento está fora dos limites verticais do mapa
+
+    if next_x < enemy_x:
+        move = "a"
+    elif next_x > enemy_x:
+        move = "d"
+    elif next_y < enemy_y:
+        move = "w"
+    elif next_y > enemy_y:
+        move = "s"
+    else:
+        return None
+
+    return move
 
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
@@ -233,6 +288,32 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
     enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
     # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
+    # Acoes para o fygar
+    if enemy_name == "Fygar":
+        if (  # se o digdug esta a direita do fygar
+            enemy_x < digdug_x
+            and enemy_dir == 1
+            and enemy_y == digdug_y
+            and enemy_y - 2 >= 0
+            and digdug_x - enemy_x <= 3
+            and mapa[enemy_x + 1][enemy_y] == 0
+            and mapa[enemy_x + 2][enemy_y] == 0
+            and mapa[enemy_x + 3][enemy_y] == 0
+        ):
+            print("fygar a esquerda")
+            enemy_y -= 2
+        elif (
+            enemy_x > digdug_x
+            and enemy_dir == 3
+            and enemy_y + 2 <= linhas - 1
+            and enemy_y == digdug_y
+            and enemy_x - digdug_x <= 3
+            and mapa[enemy_x - 1][enemy_y] == 0
+            and mapa[enemy_x - 2][enemy_y] == 0
+            and mapa[enemy_x - 3][enemy_y] == 0
+        ):
+            print("fygar a direita")
+            enemy_y += 2
     # ver se inimigo tem uma parede a frente
     if (
         enemy_dir == 0
@@ -270,31 +351,6 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         enemy_y -= 2
     elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
         enemy_x += 2
-
-    #Acoes para o fygar
-    if enemy_name == "Fygar":
-        if ( # se o digdug esta a direita do fygar
-            enemy_x < digdug_x
-            and enemy_dir == 1
-            and enemy_y == digdug_y
-            and digdug_x - enemy_x <= 3
-            and mapa[enemy_x + 1][enemy_y] == 0
-            and mapa[enemy_x + 2][enemy_y] == 0
-            and mapa[enemy_x + 3][enemy_y] == 0
-        ):
-            print("fygar a direita")
-            enemy_x -= 3
-        elif (
-            enemy_x > digdug_x
-            and enemy_dir == 3
-            and enemy_y == digdug_y
-            and enemy_x - digdug_x <= 3
-            and mapa[enemy_x - 1][enemy_y] == 0
-            and mapa[enemy_x - 2][enemy_y] == 0
-            and mapa[enemy_x - 3][enemy_y] == 0
-        ):
-            print("fygar a esquerda")
-            enemy_x += 3
 
     p = SearchProblem(
         movimentos,
