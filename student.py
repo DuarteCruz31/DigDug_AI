@@ -19,7 +19,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
-
+        tree_controller = 0
+        possible_movimentos = None
+        acao = None
         while True:
             t1 = time.time()
             try:
@@ -42,14 +44,17 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if nearest_enemy is None:
                     continue
 
-                possible_movimentos = param_algoritmo(mapa)
+                if tree_controller % 10 == 0:
+                    possible_movimentos = param_algoritmo(mapa)
 
-                acao = algoritmo_search(
-                    possible_movimentos, state, nearest_enemy, "greedy", mapa
-                )
+                tree_controller += 1
+
+                if possible_movimentos is not None:
+                    acao = algoritmo_search(
+                        possible_movimentos, state, nearest_enemy, "greedy", mapa
+                    )
 
                 t2 = time.time()
-                # print(f"Time: {t2 - t1}")
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
@@ -57,12 +62,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     next_x, next_y = nextStep[0], nextStep[1]
 
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-                    enemy_dir = state["enemies"][nearest_enemy]["dir"]
-
-                    if enemy_x == next_x and enemy_y == next_y:
-                        await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
-                        last_move = "A"
-                        continue
 
                     avoid_rock = avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y)
                     if avoid_rock is not None:
@@ -70,14 +69,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(
                             json.dumps({"cmd": "key", "key": avoid_rock})
                         )
-
-                    """ if too_many_enemies_too_close(state, next_x, next_y) is not None:
-                        print("Too many enemies too close")
-                        move = too_many_enemies_too_close(state, next_x, next_y)
-                        await websocket.send(json.dumps({"cmd": "key", "key": move}))
-                        continue """
-
-                    # Avoid getting in front of fygar
+                        last_move = avoid_rock
 
                     if can_shoot(state, mapa, last_move, nearest_enemy):
                         print("Can shoot")
@@ -242,10 +234,6 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
             min_distance = distance
 
     return move
-
-
-def calculate_distance(x1, y1, x2, y2):
-    return abs(x1 - x2) + abs(y1 - y2)
 
 
 def too_many_enemies_too_close(state, next_x, next_y):
@@ -443,10 +431,6 @@ def nearest_distance(state, mapa):
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
-        enemy_x, enemy_y = enemy["pos"]
-        """ if mapa[enemy_x][enemy_y] == 1:
-            continue """
-
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance
