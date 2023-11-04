@@ -10,7 +10,7 @@ from consts import Smart, LIVES, TIMEOUT, MAX_LEN_ROPE, MIN_ENEMIES
 logger = logging.getLogger("Game")
 logger.setLevel(logging.INFO)
 INITIAL_SCORE = 0
-GAME_SPEED = 15
+GAME_SPEED = 10
 MAP_SIZE = (48, 24)
 
 
