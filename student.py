@@ -23,7 +23,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         possible_movimentos = None
         acao = None
         while True:
-            t1 = time.time()
             try:
                 state = json.loads(await websocket.recv())
 
@@ -53,8 +52,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     acao = algoritmo_search(
                         possible_movimentos, state, nearest_enemy, "greedy", mapa
                     )
-
-                t2 = time.time()
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
@@ -207,13 +204,10 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
 
 
 def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
-    min_distance = float("inf")
     move = None
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
-        distance = abs(rock_x - digdug_x) + abs(rock_y - digdug_y)
-
         if rock_x == next_x and rock_y == next_y:
             if (
                 (rock_x == digdug_x + 1 and move != "w")
@@ -231,7 +225,6 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
                     move = "a"
                 elif rock_y == digdug_y - 1:
                     move = "d"
-            min_distance = distance
 
     return move
 
