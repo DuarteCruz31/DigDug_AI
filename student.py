@@ -110,10 +110,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 def enemy_backdoor(state, mapa, nearest_enemy):
     digdug_x, digdug_y = state["digdug"]
-
-    valid_x_range = range(colunas)
-    valid_y_range = range(linhas)
-
     positions_they_cant_be = [
         [digdug_x + 1, digdug_y],
         [digdug_x + 2, digdug_y],
@@ -128,12 +124,14 @@ def enemy_backdoor(state, mapa, nearest_enemy):
     positions_they_cant_be = [
         p
         for p in positions_they_cant_be
-        if p[0] in valid_x_range and p[1] in valid_y_range and mapa[p[0]][p[1]] != 1
+        if 0 <= p[0] >= colunas and 0 <= p[1] >= linhas and mapa[p[0]][p[1]] != 1
     ]
 
     for enemy in state["enemies"]:
-        if enemy in positions_they_cant_be and enemy != nearest_enemy:
-            return False
+        if enemy != state["enemies"][nearest_enemy]:
+            enemy_x, enemy_y = enemy["pos"]
+            if [enemy_x, enemy_y] in positions_they_cant_be and enemy != nearest_enemy:
+                return False
 
     return True
 
@@ -141,6 +139,7 @@ def enemy_backdoor(state, mapa, nearest_enemy):
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
     enemies = state["enemies"]
     digdug_x, digdug_y = state["digdug"]
+    shooting_distance = 3
 
     for enemy in enemies:
         if enemy != state["enemies"][nearest_enemy]:
@@ -148,7 +147,8 @@ def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
             if enemy_x == digdug_x:
                 if enemy_y > digdug_y:
                     if (
-                        enemy_y - digdug_y <= 3
+                        enemy_y - digdug_y <= shooting_distance
+                        and enemy_y - 3 >= 0
                         and mapa[digdug_x][enemy_y - 1] == 0
                         and mapa[digdug_x][enemy_y - 2] == 0
                         and mapa[digdug_x][enemy_y - 3] == 0
@@ -156,7 +156,8 @@ def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
                         return False
                 else:
                     if (
-                        digdug_y - enemy_y <= 3
+                        digdug_y - enemy_y <= shooting_distance
+                        and enemy_y + 3 <= linhas - 1
                         and mapa[digdug_x][enemy_y + 1] == 0
                         and mapa[digdug_x][enemy_y + 2] == 0
                         and mapa[digdug_x][enemy_y + 3] == 0
@@ -165,15 +166,17 @@ def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
             elif enemy_y == digdug_y:
                 if (
                     enemy_x > digdug_x
+                    and enemy_x - 3 >= 0
                     and mapa[enemy_x - 1][digdug_y] == 0
                     and mapa[enemy_x - 2][digdug_y] == 0
                     and mapa[enemy_x - 3][digdug_y] == 0
                 ):
-                    if enemy_x - digdug_x <= 3:
+                    if enemy_x - digdug_x <= shooting_distance:
                         return False
                 else:
                     if (
-                        digdug_x - enemy_x <= 3
+                        digdug_x - enemy_x <= shooting_distance
+                        and enemy_x + 3 <= colunas - 1
                         and mapa[enemy_x + 1][digdug_y] == 0
                         and mapa[enemy_x + 2][digdug_y] == 0
                         and mapa[enemy_x + 3][digdug_y] == 0
