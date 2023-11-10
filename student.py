@@ -108,72 +108,78 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 return
 
 
-# def enemy_backdoor(state, nearest_enemy):
-#     enemy_x, enemy_y = state['enemies'][nearest_enemy]['pos']
-#     digdug_x, digdug_y = state["digdug"]
-    
-#     for each_enemy in state['enemies']:
-#         if each_enemy != nearest_enemy:
-#             if (enemy_x == each_enemy['pos'][0] == digdug_x) and (abs(each_enemy['pos'][0] - digdug_x) <= 3):
-#                 return False
-#             elif (enemy_y == each_enemy['pos'][1] == digdug_y) and (abs(each_enemy['pos'][1] - digdug_y) <= 3):
-#                 return False
-
-#     return True
-
 def enemy_backdoor(state, mapa, nearest_enemy):
     digdug_x, digdug_y = state["digdug"]
-    
-    valid_x_range = range(48)
-    valid_y_range = range(24)
-    
+
+    valid_x_range = range(colunas)
+    valid_y_range = range(linhas)
+
     positions_they_cant_be = [
-        [digdug_x + 1, digdug_y], [digdug_x + 2, digdug_y], [digdug_x, digdug_y + 1],
-        [digdug_x, digdug_y + 2], [digdug_x - 1, digdug_y], [digdug_x - 2, digdug_y],
-        [digdug_x, digdug_y - 1], [digdug_x, digdug_y - 2]
+        [digdug_x + 1, digdug_y],
+        [digdug_x + 2, digdug_y],
+        [digdug_x, digdug_y + 1],
+        [digdug_x, digdug_y + 2],
+        [digdug_x - 1, digdug_y],
+        [digdug_x - 2, digdug_y],
+        [digdug_x, digdug_y - 1],
+        [digdug_x, digdug_y - 2],
     ]
 
     positions_they_cant_be = [
-        p for p in positions_they_cant_be if p[0] in valid_x_range and p[1] in valid_y_range and mapa[p[0]][p[1]] != 1
+        p
+        for p in positions_they_cant_be
+        if p[0] in valid_x_range and p[1] in valid_y_range and mapa[p[0]][p[1]] != 1
     ]
 
-    print(positions_they_cant_be)
-
-    for enemy in state['enemies']:
+    for enemy in state["enemies"]:
         if enemy in positions_they_cant_be and enemy != nearest_enemy:
             return False
 
     return True
 
-# def enemy_backdoor(state, mapa, nearest_enemy):
 
-#     #Create a function sees all theres enemies two spaces away from the digdug
+def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
+    enemies = state["enemies"]
+    digdug_x, digdug_y = state["digdug"]
 
-#     enemy_x, enemy_y = state['enemies'][nearest_enemy]['pos']
-#     digdug_x, digdug_y = state["digdug"]
-
-#     if enemy_x == digdug_x:
-#         if enemy_y < digdug_y:
-#             for i in range(1,3):
-#                 if mapa[enemy_x][enemy_y+i] == 1:
-#                     return False
-#         elif enemy_y > digdug_y:
-#             for i in range(1,3):
-#                 if mapa[enemy_x][enemy_y-i] == 1:
-#                     return False
-                
-#     elif enemy_y == digdug_y:
-#         if enemy_x < digdug_x:
-#             for i in range(1,3):
-#                 if mapa[enemy_x+i][enemy_y] == 1:
-#                     return False
-#         elif enemy_x > digdug_x:
-#             for i in range(1,3):
-#                 if mapa[enemy_x-i][enemy_y] == 1:
-#                     return False
-                
-#     return True
-
+    for enemy in enemies:
+        if enemy != state["enemies"][nearest_enemy]:
+            enemy_x, enemy_y = enemy["pos"]
+            if enemy_x == digdug_x:
+                if enemy_y > digdug_y:
+                    if (
+                        enemy_y - digdug_y <= 3
+                        and mapa[digdug_x][enemy_y - 1] == 0
+                        and mapa[digdug_x][enemy_y - 2] == 0
+                        and mapa[digdug_x][enemy_y - 3] == 0
+                    ):
+                        return False
+                else:
+                    if (
+                        digdug_y - enemy_y <= 3
+                        and mapa[digdug_x][enemy_y + 1] == 0
+                        and mapa[digdug_x][enemy_y + 2] == 0
+                        and mapa[digdug_x][enemy_y + 3] == 0
+                    ):
+                        return False
+            elif enemy_y == digdug_y:
+                if (
+                    enemy_x > digdug_x
+                    and mapa[enemy_x - 1][digdug_y] == 0
+                    and mapa[enemy_x - 2][digdug_y] == 0
+                    and mapa[enemy_x - 3][digdug_y] == 0
+                ):
+                    if enemy_x - digdug_x <= 3:
+                        return False
+                else:
+                    if (
+                        digdug_x - enemy_x <= 3
+                        and mapa[enemy_x + 1][digdug_y] == 0
+                        and mapa[enemy_x + 2][digdug_y] == 0
+                        and mapa[enemy_x + 3][digdug_y] == 0
+                    ):
+                        return False
+    return True
 
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
@@ -236,7 +242,8 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 1][digdug_y] == 0
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
-            and enemy_backdoor(state,mapa,nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemy_backdoor(state, mapa, nearest_enemy)
         ):
             return True
         elif (
@@ -247,7 +254,8 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 1][digdug_y] == 0
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
-            and enemy_backdoor(state,mapa,nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemy_backdoor(state, mapa, nearest_enemy)
         ):
             return True
         elif (
@@ -258,7 +266,8 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 1] == 0
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
-            and enemy_backdoor(state,mapa,nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemy_backdoor(state, mapa, nearest_enemy)
         ):
             return True
         elif (
@@ -269,7 +278,8 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 1] == 0
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
-            and enemy_backdoor(state,mapa,nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemy_backdoor(state, mapa, nearest_enemy)
         ):
             return True
     return False
@@ -299,29 +309,6 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
                     move = "d"
 
     return move
-
-
-def too_many_enemies_too_close(state, next_x, next_y):
-    min_distance = float("inf")
-    close_enemies = []
-
-    for enemy in state["enemies"]:
-        enemy_x, enemy_y = enemy["pos"]
-        distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
-
-        if distance < min_distance:
-            min_distance = distance
-
-        if distance <= 3:
-            close_enemies.append(enemy)
-
-    if len(close_enemies) >= 2:
-        for enemy in close_enemies:
-            enemy_x, enemy_y = enemy["pos"]
-            move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
-            if move is not None:
-                return move
-    return None
 
 
 def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
