@@ -2,7 +2,7 @@ import math
 from tree_search import *
 
 
-class DigDug(SearchDomain):
+class DigDug:
     def __init__(self, connections, coordinates):
         self.connections = connections
         self.coordinates = coordinates
