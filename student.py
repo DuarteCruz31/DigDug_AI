@@ -25,7 +25,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         while True:
             try:
                 state = json.loads(await websocket.recv())
-                print(state)
                 if "map" in state:
                     mapa = state["map"]
 
@@ -47,6 +46,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if (
                     "traverse" in state["enemies"][nearest_enemy]
                     and state["enemies"][nearest_enemy]["traverse"] == True
+                    and calc_dist(
+                        state["digdug"], state["enemies"][nearest_enemy]["pos"]
+                    )
+                    <= 5
                 ):
                     move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
                     if move is not None:
@@ -524,6 +527,10 @@ def nearest_distance(state, mapa):
             nearest_enemy = i
 
     return nearest_enemy
+
+
+def calc_dist(pos1, pos2):
+    return math.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
 
 
 loop = asyncio.get_event_loop()
