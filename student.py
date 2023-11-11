@@ -8,6 +8,7 @@ from digdug import *
 import math
 from tree_search import *
 from digdug import *
+import networkx as nx
 
 possible_movimentos = None
 mapa = None
@@ -19,8 +20,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
-        tree_controller = 0
-        possible_movimentos = None
         acao = None
         while True:
             try:
@@ -57,18 +56,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = move
                         continue
 
-                if tree_controller % 10 == 0:
-                    possible_movimentos = param_algoritmo(mapa)
-
-                tree_controller += 1
-
-                if possible_movimentos is not None:
-                    acao = algoritmo_search(
-                        possible_movimentos, state, nearest_enemy, "greedy", mapa
-                    )
+                acao = algoritmo_coiso(state, nearest_enemy, "greedy", mapa)
 
                 if acao != None and len(acao) > 1:
-                    nextStepList = acao[1][1:-1].split(", ")
+                    nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
                     next_x, next_y = nextStep[0], nextStep[1]
 
@@ -120,35 +111,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
-
-
-def enemy_backdoor(state, mapa, nearest_enemy):
-    digdug_x, digdug_y = state["digdug"]
-    positions_they_cant_be = [
-        [digdug_x + 1, digdug_y],
-        [digdug_x + 2, digdug_y],
-        [digdug_x, digdug_y + 1],
-        [digdug_x, digdug_y + 2],
-        [digdug_x - 1, digdug_y],
-        [digdug_x - 2, digdug_y],
-        [digdug_x, digdug_y - 1],
-        [digdug_x, digdug_y - 2],
-    ]
-
-    positions_they_cant_be = [
-        p
-        for p in positions_they_cant_be
-        if 0 <= p[0] >= colunas and 0 <= p[1] >= linhas and mapa[p[0]][p[1]] != 1
-    ]
-
-    for enemy in state["enemies"]:
-        if enemy != state["enemies"][nearest_enemy]:
-            enemy_x, enemy_y = enemy["pos"]
-            if [enemy_x, enemy_y] in positions_they_cant_be:
-                print("Enemy backdoor")
-                return False
-
-    return True
 
 
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
@@ -222,7 +184,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 1][digdug_y] == 0
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -237,7 +198,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 1][digdug_y] == 0
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -250,7 +210,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 1] == 0
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -263,7 +222,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 1] == 0
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -277,7 +235,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -290,7 +247,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -303,7 +259,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -316,7 +271,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemy_backdoor(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
@@ -376,7 +330,7 @@ def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
         return None
 
 
-def algoritmo_search(movimentos, state, enemy, strategy, mapa):
+def algoritmo_coiso(state, enemy, strategy, mapa):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     digdug_x, digdug_y = state["digdug"]
     enemy_name = state["enemies"][enemy]["name"]
@@ -453,67 +407,9 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
 
-    p = SearchProblem(
-        movimentos,
-        str(tuple(state["digdug"])),
-        str((enemy_x, enemy_y)),
-    )
-    t = SearchTree(p, strategy)
+    G = nx.grid_2d_graph(48, 24)
 
-    return t.search()
-
-
-def param_algoritmo(mapa):
-    linhass = 48
-    colunass = 24
-
-    # Lista para armazenar os movimentos no formato ("(x_inicial, y_inicial)", "(x_final, y_final)", 1)
-    possible_moves = []
-    # Dicionario para armazenar as coordenadas no formato {"(x, y)": (x, y)}
-    coordenadas = {}
-
-    for linha in range(linhass):
-        for coluna in range(colunass):
-            # Adicionar movimentos para cima
-            inicio = str((linha, coluna))
-            if linha > 0:
-                fim = str((linha - 1, coluna))
-                if mapa[linha - 1][coluna] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-            # Adicionar movimentos para baixo
-            if linha < linhass - 1:
-                fim = str((linha + 1, coluna))
-                if mapa[linha + 1][coluna] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-            # Adicionar movimentos para a esquerda
-            if coluna > 0:
-                fim = str((linha, coluna - 1))
-                if mapa[linha][coluna - 1] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-            # Adicionar movimentos para a direita
-            if coluna < colunass - 1:
-                fim = str((linha, coluna + 1))
-                if mapa[linha][coluna + 1] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-
-            coordenada = (linha, coluna)
-            coordenada_str = f"({linha}, {coluna})"
-            coordenadas[coordenada_str] = coordenada
-
-    possible_movimentos = DigDug(
-        possible_moves,
-        coordenadas,
-    )
-
-    return possible_movimentos
+    return nx.bidirectional_shortest_path(G, (digdug_x, digdug_y), (enemy_x, enemy_y))
 
 
 def nearest_distance(state, mapa):
