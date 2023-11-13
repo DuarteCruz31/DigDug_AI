@@ -25,7 +25,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         while True:
             try:
                 state = json.loads(await websocket.recv())
-
                 if "map" in state:
                     mapa = state["map"]
 
@@ -74,6 +73,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     next_x, next_y = nextStep[0], nextStep[1]
 
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+
+                    # Se ele estiver para ir contra o fogo do fygar foge
+                    if in_the_fire(state, nearest_enemy, next_x, next_y):
+                        print("In the fire")
+                        move = avoid_enemies(
+                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
 
                     avoid_rock = avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y)
                     if avoid_rock is not None:
@@ -138,6 +150,18 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
+
+
+def in_the_fire(state, nearest_enemy, next_x, next_y):
+    # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
+    if "fire" in state["enemies"][nearest_enemy]:
+        enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+        if next_y == enemy_y:
+            for fire in state["enemies"][nearest_enemy]["fire"]:
+                fire_x = fire[0]
+                if next_x == fire_x:
+                    return True
+    return False
 
 
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
