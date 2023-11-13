@@ -311,29 +311,6 @@ def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
     return move
 
 
-def too_many_enemies_too_close(state, next_x, next_y):
-    min_distance = float("inf")
-    close_enemies = []
-
-    for enemy in state["enemies"]:
-        enemy_x, enemy_y = enemy["pos"]
-        distance = calculate_distance(next_x, next_y, enemy_x, enemy_y)
-
-        if distance < min_distance:
-            min_distance = distance
-
-        if distance <= 3:
-            close_enemies.append(enemy)
-
-    if len(close_enemies) >= 2:
-        for enemy in close_enemies:
-            enemy_x, enemy_y = enemy["pos"]
-            move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
-            if move is not None:
-                return move
-    return None
-
-
 def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
     if next_x <= 1 or next_x >= colunas - 3:
         return "w"

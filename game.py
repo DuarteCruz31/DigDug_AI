@@ -8,7 +8,7 @@ from mapa import VITAL_SPACE, Map
 from consts import Smart, LIVES, TIMEOUT, MAX_LEN_ROPE, MIN_ENEMIES
 
 logger = logging.getLogger("Game")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 INITIAL_SCORE = 0
 GAME_SPEED = 10
 MAP_SIZE = (48, 24)
@@ -253,7 +253,7 @@ class Game:
             )
 
         if not self.update_digdug():
-            return # if update_digdug returns false, we have a new level and we stop right here
+            return  # if update_digdug returns false, we have a new level and we stop right here
 
         self.collision()
 

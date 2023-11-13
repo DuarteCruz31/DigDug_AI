@@ -116,7 +116,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
     enemies = state["enemies"]
     digdug_x, digdug_y = state["digdug"]
-    shooting_distance = 3
+    shooting_distance = 2
 
     for enemy in enemies:
         if enemy != state["enemies"][nearest_enemy]:
@@ -171,7 +171,7 @@ def enemies_not_in_the_same_position(state, nearest_enemy):
 
 
 def can_shoot(state, mapa, last_move, nearest_enemy):
-    # print(last_move)
+    print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -184,8 +184,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 1][digdug_y] == 0
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     elif (
@@ -199,8 +198,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 1][digdug_y] == 0
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
@@ -212,8 +210,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 1] == 0
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     elif last_move == "s":  # ultima jogada foi para baixo e o inimigo esta abaixo
@@ -225,8 +222,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 1] == 0
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     elif last_move == "A":  # ultima jogada foi para atirar
@@ -238,8 +234,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 1][digdug_y] == 0
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
         ):
             return True
         elif (
@@ -250,8 +245,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 1][digdug_y] == 0
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
         ):
             return True
         elif (
@@ -262,8 +256,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 1] == 0
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
         ):
             return True
         elif (
@@ -274,8 +267,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 1] == 0
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
-            # and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            # and enemies_not_in_the_same_position(state, nearest_enemy)
+            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
         ):
             return True
     return False
