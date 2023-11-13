@@ -39,6 +39,13 @@ class Rope:
         self._dir = None
         self._map = mapa
 
+    @property
+    def stretched(self):
+        return self._pos != []
+
+    def to_dict(self):
+        return {"dir": self._dir, "pos": self._pos}
+
     def shoot(self, pos, direction):
         if self._dir and direction != self._dir:
             self._pos = []  # reset rope because digdug changed direction
@@ -147,7 +154,7 @@ class Game:
             )
             for enemy, pos in zip(level_enemies(level), self.map.enemies_spawn)
         ]
-        logger.debug("Enemies: %s", [(e._name, e.pos) for e in self._enemies])
+        logger.debug("Enemies: %s", self._enemies)
         self._rocks = [Rock(p) for p in self.map._rocks]
 
     def quit(self):
@@ -193,6 +200,8 @@ class Game:
                 self.map.level * TIMEOUT - self._total_steps
             ) // 10  # update score before new level
             self.next_level(self.map.level + 1)
+            return False
+        return True
 
     def kill_digdug(self):
         logger.info(f"Dig Dug has died on step: {self._step}")
@@ -211,13 +220,16 @@ class Game:
     def collision(self):
         for e in self._enemies:
             if e.pos == self._digdug.pos:
+                logger.debug(f"{e} has killed {self._digdug}")
                 self.kill_digdug()
                 e.respawn()
             if e._name == "Fygar" and e.fire:
                 if self._digdug.pos in e.fire:
+                    logger.debug(f"{e} has killed {self._digdug} with fire")
                     self.kill_digdug()
         for r in self._rocks:
             if r.pos == self._digdug.pos:
+                logger.debug(f"{r} has killed {self._digdug}")
                 self.kill_digdug()
             for e in self._enemies:
                 if r.pos == e.pos:
@@ -240,7 +252,8 @@ class Game:
                 f"[{self._step}] SCORE {self._score} - LIVES {self._digdug.lives}"
             )
 
-        self.update_digdug()
+        if not self.update_digdug():
+            return # if update_digdug returns false, we have a new level and we stop right here
 
         self.collision()
 
@@ -269,20 +282,18 @@ class Game:
             "lives": self._digdug.lives,
             "digdug": self._digdug.pos,
             "enemies": [],
-            "rocks": [{"id": str(r.id), "pos": r.pos} for r in self._rocks],
+            "rocks": [r.to_dict() for r in self._rocks],
         }
 
         for e in self._enemies:
-            self._state["enemies"].append(
-                {"name": str(e), "id": str(e.id), "pos": e.pos, "dir": e.lastdir}
-            )
-            if e._name == "Fygar" and e.fire:
+            self._state["enemies"].append(e.to_dict())
+            if e.name == "Fygar" and e.fire:
                 self._state["enemies"][-1]["fire"] = e.fire
             if e.traverse:
                 self._state["enemies"][-1]["traverse"] = e.traverse
 
-        if self._rope._pos:
-            self._state["rope"] = {"dir": self._rope._dir, "pos": self._rope._pos}
+        if self._rope.stretched:
+            self._state["rope"] = self._rope.to_dict()
 
         return self._state
 

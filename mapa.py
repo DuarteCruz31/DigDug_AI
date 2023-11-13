@@ -12,8 +12,7 @@ class Map:
     def __init__(
         self,
         level=1,
-        enemies=0,
-        rocks=[],
+        rocks=None,
         size=(VITAL_SPACE + 10, VITAL_SPACE + 10),
         mapa=None,
         enemies_spawn=None,
@@ -70,7 +69,8 @@ class Map:
                     logger.debug(f"Spawn enemy at ({column}, {offset})")
 
             # create rocks
-            if self._rocks == []:
+            if not self._rocks:
+                self._rocks = []
                 for r in range(self._level):
                     x, y = random.randrange(0, self.hor_tiles), random.randrange(
                         VITAL_SPACE + 1, self.ver_tiles - VITAL_SPACE
@@ -129,6 +129,8 @@ class Map:
     def is_blocked(self, pos, traverse):
         x, y = pos
         if x not in range(self.hor_tiles) or y not in range(self.ver_tiles):
+            return True
+        if pos in self._rocks:
             return True
         if self.map[x][y] == Tiles.PASSAGE:
             return False
