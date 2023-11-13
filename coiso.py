@@ -154,13 +154,36 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 def in_the_fire(state, nearest_enemy, next_x, next_y):
     # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
-    if "fire" in state["enemies"][nearest_enemy]:
+    enemy_name = state["enemies"][nearest_enemy]["name"]
+
+    if enemy_name == "Fygar":
         enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-        if next_y == enemy_y:
-            for fire in state["enemies"][nearest_enemy]["fire"]:
-                fire_x = fire[0]
-                if next_x == fire_x:
-                    return True
+        enemy_dir = state["enemies"][nearest_enemy]["dir"]
+        if enemy_y == next_y:
+            if (
+                enemy_dir == 1
+                and enemy_x + 4 <= colunas - 1
+                and (
+                    enemy_x == next_x
+                    or enemy_x + 1 == next_x
+                    or enemy_x + 2 == next_x
+                    or enemy_x + 3 == next_x
+                    or enemy_x + 4 == next_x
+                )
+            ):
+                return True
+            elif (
+                enemy_dir == 3
+                and enemy_x - 4 >= 0
+                and (
+                    enemy_x == next_x
+                    or enemy_x - 1 == next_x
+                    or enemy_x - 2 == next_x
+                    or enemy_x - 3 == next_x
+                    or enemy_x - 4 == next_x
+                )
+            ):
+                return True
     return False
 
 
