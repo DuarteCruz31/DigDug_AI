@@ -83,6 +83,21 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         )
                         last_move = avoid_rock
 
+                    if (
+                        not_sandwiched(state, mapa, nearest_enemy, next_x, next_y)
+                        == False
+                    ):
+                        print("Sandwiched")
+                        move = avoid_enemies(
+                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
+
                     if can_shoot(state, mapa, last_move, nearest_enemy):
                         print("Can shoot")
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
@@ -182,8 +197,31 @@ def enemies_not_in_the_same_position(state, nearest_enemy):
     return True
 
 
+def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
+    nearest_x, nearest_y = state["enemies"][nearest_enemy]["pos"]
+
+    for enemy in state["enemies"]:
+        if enemy != state["enemies"][nearest_enemy]:
+            enemy_x, enemy_y = enemy["pos"]
+            if enemy_x == digdug_x == nearest_x:
+                if (
+                    enemy_y > digdug_y > nearest_y
+                    or enemy_y < digdug_y < nearest_y
+                    and abs(enemy_y - digdug_y) <= 3
+                ):
+                    return False
+            elif enemy_y == digdug_y == nearest_y:
+                if (
+                    enemy_x > digdug_x > nearest_x
+                    or enemy_x < digdug_x < nearest_x
+                    and abs(enemy_x - digdug_x) <= 3
+                ):
+                    return False
+    return True
+
+
 def can_shoot(state, mapa, last_move, nearest_enemy):
-    print(last_move)
+    # print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -197,6 +235,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif (
@@ -211,6 +250,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
@@ -223,6 +263,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif last_move == "s":  # ultima jogada foi para baixo e o inimigo esta abaixo
@@ -235,6 +276,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif last_move == "A":  # ultima jogada foi para atirar
@@ -247,6 +289,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
         elif (
@@ -258,6 +301,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
         elif (
@@ -269,6 +313,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
         elif (
@@ -280,6 +325,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     return False
