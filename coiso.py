@@ -25,7 +25,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         while True:
             try:
                 state = json.loads(await websocket.recv())
-
                 if "map" in state:
                     mapa = state["map"]
 
@@ -75,6 +74,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
 
+                    # Se ele estiver para ir contra o fogo do fygar foge
+                    if in_the_fire(state, nearest_enemy, next_x, next_y):
+                        print("In the fire")
+                        move = avoid_enemies(
+                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
+
                     avoid_rock = avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y)
                     if avoid_rock is not None:
                         print("Avoiding rock")
@@ -82,6 +94,21 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             json.dumps({"cmd": "key", "key": avoid_rock})
                         )
                         last_move = avoid_rock
+
+                    if (
+                        not_sandwiched(state, mapa, nearest_enemy, next_x, next_y)
+                        == False
+                    ):
+                        print("Sandwiched")
+                        move = avoid_enemies(
+                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
 
                     if can_shoot(state, mapa, last_move, nearest_enemy):
                         print("Can shoot")
@@ -123,6 +150,41 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
+
+
+def in_the_fire(state, nearest_enemy, next_x, next_y):
+    # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
+    enemy_name = state["enemies"][nearest_enemy]["name"]
+
+    if enemy_name == "Fygar":
+        enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+        enemy_dir = state["enemies"][nearest_enemy]["dir"]
+        if enemy_y == next_y:
+            if (
+                enemy_dir == 1
+                and enemy_x + 4 <= colunas - 1
+                and (
+                    enemy_x == next_x
+                    or enemy_x + 1 == next_x
+                    or enemy_x + 2 == next_x
+                    or enemy_x + 3 == next_x
+                    or enemy_x + 4 == next_x
+                )
+            ):
+                return True
+            elif (
+                enemy_dir == 3
+                and enemy_x - 4 >= 0
+                and (
+                    enemy_x == next_x
+                    or enemy_x - 1 == next_x
+                    or enemy_x - 2 == next_x
+                    or enemy_x - 3 == next_x
+                    or enemy_x - 4 == next_x
+                )
+            ):
+                return True
+    return False
 
 
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
@@ -182,8 +244,31 @@ def enemies_not_in_the_same_position(state, nearest_enemy):
     return True
 
 
+def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
+    nearest_x, nearest_y = state["enemies"][nearest_enemy]["pos"]
+
+    for enemy in state["enemies"]:
+        if enemy != state["enemies"][nearest_enemy]:
+            enemy_x, enemy_y = enemy["pos"]
+            if enemy_x == digdug_x == nearest_x:
+                if (
+                    enemy_y > digdug_y > nearest_y
+                    or enemy_y < digdug_y < nearest_y
+                    and abs(enemy_y - digdug_y) <= 3
+                ):
+                    return False
+            elif enemy_y == digdug_y == nearest_y:
+                if (
+                    enemy_x > digdug_x > nearest_x
+                    or enemy_x < digdug_x < nearest_x
+                    and abs(enemy_x - digdug_x) <= 3
+                ):
+                    return False
+    return True
+
+
 def can_shoot(state, mapa, last_move, nearest_enemy):
-    print(last_move)
+    # print(last_move)
     shooting_distance = 3
     digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -197,6 +282,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif (
@@ -211,6 +297,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
@@ -223,6 +310,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif last_move == "s":  # ultima jogada foi para baixo e o inimigo esta abaixo
@@ -235,6 +323,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
             and enemies_not_in_the_same_position(state, nearest_enemy)
+            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
             return True
     elif last_move == "A":  # ultima jogada foi para atirar
@@ -247,6 +336,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x - 2][digdug_y] == 0
             and mapa[enemy_x - 3][digdug_y] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
         elif (
@@ -258,6 +348,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[enemy_x + 2][digdug_y] == 0
             and mapa[enemy_x + 3][digdug_y] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
         elif (
@@ -269,6 +360,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y + 2] == 0
             and mapa[digdug_x][enemy_y + 3] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
         elif (
@@ -280,6 +372,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and mapa[digdug_x][enemy_y - 2] == 0
             and mapa[digdug_x][enemy_y - 3] == 0
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
+            and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     return False

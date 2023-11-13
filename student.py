@@ -50,7 +50,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     )
                     <= 5
                 ):
-                    move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
+                    move = avoid_enemies(state, digdug_x, digdug_y, enemy_x, enemy_y)
                     if move is not None:
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
                         last_move = move
@@ -59,13 +59,16 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 acao = algoritmo_coiso(state, nearest_enemy, "greedy", mapa)
 
                 if acao != None and len(acao) > 1:
+                    print(acao)
                     nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
                     next_x, next_y = nextStep[0], nextStep[1]
 
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
 
-                    avoid_rock = avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y)
+                    avoid_rock = avoid_Rocks(
+                        state, digdug_x, digdug_y, digdug_x, digdug_y
+                    )
                     if avoid_rock is not None:
                         print("Avoiding rock")
                         await websocket.send(
@@ -84,7 +87,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         and can_shoot(state, mapa, last_move, nearest_enemy) == False
                     ):
                         print("Enemy too close")
-                        move = avoid_enemies(state, next_x, next_y, enemy_x, enemy_y)
+                        move = avoid_enemies(
+                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                        )
                         if move is not None:
                             await websocket.send(
                                 json.dumps({"cmd": "key", "key": move})
