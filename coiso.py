@@ -87,13 +87,28 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             last_move = move
                             continue
 
-                    avoid_rock = avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y)
+                    avoid_rock = avoid_Rocks(
+                        state, mapa, next_x, next_y, digdug_x, digdug_y
+                    )
                     if avoid_rock is not None:
                         print("Avoiding rock")
                         await websocket.send(
                             json.dumps({"cmd": "key", "key": avoid_rock})
                         )
                         last_move = avoid_rock
+                        continue
+
+                    """ if dangerous_position(state, nearest_enemy, next_x, next_y):
+                        print("Dangerous position")
+                        move = avoid_enemies(
+                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue """
 
                     if (
                         not_sandwiched(state, mapa, nearest_enemy, next_x, next_y)
@@ -150,6 +165,34 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
+
+
+def dangerous_position(state, nearest_enemy, next_x, next_y):
+    # check if next position is 1 block away from enemy
+    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+    if (
+        enemy_x - 1 >= 0
+        and enemy_x + 1 <= colunas - 1
+        and (enemy_x == next_x + 1 or enemy_x == next_x - 1)
+    ):
+        if enemy_y > next_y:
+            if enemy_y - next_y <= 1:
+                return True
+        else:
+            if next_y - enemy_y <= 1:
+                return True
+    elif (
+        enemy_y - 1 >= 0
+        and enemy_y + 1 <= linhas - 1
+        and (enemy_y == next_y + 1 or enemy_y == next_y - 1)
+    ):
+        if enemy_x > next_x:
+            if enemy_x - next_x <= 1:
+                return True
+        else:
+            if next_x - enemy_x <= 1:
+                return True
+    return False
 
 
 def in_the_fire(state, nearest_enemy, next_x, next_y):
@@ -378,29 +421,16 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
     return False
 
 
-def avoid_Rocks(state, next_x, next_y, digdug_x, digdug_y):
+def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
     move = None
-
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
+        mapa[rock_x][rock_y] = 1
         if rock_x == next_x and rock_y == next_y:
-            if (
-                (rock_x == digdug_x + 1 and move != "w")
-                or (rock_x == digdug_x - 1 and move != "s")
-                or (rock_y == digdug_y + 1 and move != "a")
-                or (rock_y == digdug_y - 1 and move != "d")
-            ):
-                move = None  # Evitar o movimento se a pedra cair em cima do gajo
+            if rock_y == digdug_y:
+                move = "w"
             else:
-                if rock_x == digdug_x + 1:
-                    move = "w"
-                elif rock_x == digdug_x - 1:
-                    move = "s"
-                elif rock_y == digdug_y + 1:
-                    move = "a"
-                elif rock_y == digdug_y - 1:
-                    move = "d"
-
+                move = "d"
     return move
 
 
