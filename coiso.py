@@ -423,6 +423,8 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
 
 def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
     move = None
+    print("next x: ", next_x, "next y: ", next_y)
+    print("digdug x: ", digdug_x, "digdug y: ", digdug_y)
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
         mapa[rock_x][rock_y] = 1
