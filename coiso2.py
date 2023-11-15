@@ -22,6 +22,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         tree_controller = 0
         possible_movimentos = None
         acao = None
+        
         while True:
             try:
                 state = json.loads(await websocket.recv())
@@ -37,6 +38,11 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 digdug_x, digdug_y = state["digdug"]
 
                 mapa[digdug_x][digdug_y] = 0
+
+                pedras = []
+                for pedra in state['rocks']:
+                    pedras.append(pedra)
+                
 
                 nearest_enemy = nearest_distance(state, mapa)
                 if nearest_enemy is None:
@@ -64,7 +70,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 if possible_movimentos is not None:
                     acao = algoritmo_search(
-                        possible_movimentos, state, nearest_enemy, "greedy", mapa
+                        possible_movimentos, state, nearest_enemy, "greedy", mapa,pedras
                     )
 
                 if acao != None and len(acao) > 1:
@@ -88,7 +94,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             continue
 
                     avoid_rock = avoid_Rocks(
-                        state, mapa, next_x, next_y, digdug_x, digdug_y
+                        state, mapa, next_x, next_y, digdug_x, digdug_y,nearest_enemy
                     )
                     if avoid_rock is not None:
                         print("Avoiding rock")
@@ -98,8 +104,8 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = avoid_rock
                         continue
 
-                    """ if dangerous_position(state, nearest_enemy, next_x, next_y):
-                        print("Dangerous position")
+                    """ if limits(state, nearest_enemy, next_x, next_y):
+                        print("MAP LIMITS")
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y
                         )
@@ -109,6 +115,8 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue """
+                    
+                    
 
                     if (
                         not_sandwiched(state, mapa, nearest_enemy, next_x, next_y)
@@ -193,6 +201,9 @@ def dangerous_position(state, nearest_enemy, next_x, next_y):
             if next_x - enemy_x <= 1:
                 return True
     return False
+
+
+
 
 
 def in_the_fire(state, nearest_enemy, next_x, next_y):
@@ -421,18 +432,26 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
     return False
 
 
-def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
+def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y,nearest_enemy):
     move = None
     print("next x: ", next_x, "next y: ", next_y)
     print("digdug x: ", digdug_x, "digdug y: ", digdug_y)
+    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
         mapa[rock_x][rock_y] = 1
+        if next_y == rock_y and (digdug_x - enemy_x == 1 or digdug_y - enemy_y == 1):
+            return avoid_enemies(state,next_x,next_y,rock_x,rock_y)
         if rock_x == next_x and rock_y == next_y:
-            if rock_y == digdug_y:
-                move = "w"
-            else:
-                move = "d"
+                if rock_y == digdug_y == enemy_y:
+                    return "w"
+                elif rock_y == digdug_y:
+                    return "s"
+                else:
+                    if rock_x == enemy_x == digdug_x:
+                        return "a"
+                    else:
+                        return "d"
     return move
 
 
@@ -463,11 +482,12 @@ def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
         return None
 
 
-def algoritmo_search(movimentos, state, enemy, strategy, mapa):
+def algoritmo_search(movimentos, state, enemy, strategy, mapa , pedras):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     digdug_x, digdug_y = state["digdug"]
     enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
+    
     # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
     # Acoes para o fygar
     if enemy_name == "Fygar":
@@ -501,6 +521,8 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and enemy_y + 3 <= linhas - 1
         and enemy_y - 1 >= 0
         and mapa[enemy_x][enemy_y - 1] == 1
+        and mapa[enemy_x][enemy_y - 1] in pedras
+        
     ):  # cima
         enemy_y += 3
     elif (
@@ -508,6 +530,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and enemy_x - 3 > 0
         and enemy_x + 1 <= colunas - 1
         and mapa[enemy_x + 1][enemy_y] == 1
+        and mapa[enemy_x][enemy_y - 1] in pedras
     ):  # direita
         if enemy_name == "Fygar" and enemy_x + 3 <= colunas - 1:
             enemy_x += 3
@@ -518,6 +541,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and enemy_y - 3 > 0
         and enemy_y + 1 <= linhas - 1
         and mapa[enemy_x][enemy_y + 1] == 1
+        and mapa[enemy_x][enemy_y - 1] in pedras
     ):  # baixo
         enemy_y -= 3
     elif (
@@ -525,6 +549,7 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         and enemy_x + 3 <= colunas - 1
         and enemy_x - 1 >= 0
         and mapa[enemy_x - 1][enemy_y] == 1
+        and mapa[enemy_x][enemy_y - 1] in pedras
     ):  # esquerda
         if enemy_name == "Fygar" and enemy_x - 3 >= 0:
             enemy_x -= 3
