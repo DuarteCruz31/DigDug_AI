@@ -75,7 +75,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
 
                     # Se ele estiver para ir contra o fogo do fygar foge
-                    if in_the_fire(state, nearest_enemy, next_x, next_y):
+                    if in_the_fire(state, next_x, next_y):
                         print("In the fire")
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y
@@ -98,7 +98,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = avoid_rock
                         continue
 
-                    """ if dangerous_position(state, nearest_enemy, next_x, next_y):
+                    if dangerous_position(state, nearest_enemy, next_x, next_y):
                         print("Dangerous position")
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y
@@ -108,7 +108,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                                 json.dumps({"cmd": "key", "key": move})
                             )
                             last_move = move
-                            continue """
+                            continue
 
                     if (
                         not_sandwiched(state, mapa, nearest_enemy, next_x, next_y)
@@ -170,63 +170,59 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 def dangerous_position(state, nearest_enemy, next_x, next_y):
     # check if next position is 1 block away from enemy
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    if (
-        enemy_x - 1 >= 0
-        and enemy_x + 1 <= colunas - 1
-        and (enemy_x == next_x + 1 or enemy_x == next_x - 1)
-    ):
-        if enemy_y > next_y:
-            if enemy_y - next_y <= 1:
-                return True
-        else:
-            if next_y - enemy_y <= 1:
-                return True
-    elif (
-        enemy_y - 1 >= 0
-        and enemy_y + 1 <= linhas - 1
-        and (enemy_y == next_y + 1 or enemy_y == next_y - 1)
-    ):
-        if enemy_x > next_x:
-            if enemy_x - next_x <= 1:
-                return True
-        else:
-            if next_x - enemy_x <= 1:
-                return True
+    enemy_dir = state["enemies"][nearest_enemy]["dir"]
+
+    if enemy_dir == 1 or enemy_dir == 3:
+        cant_be_there = [
+            (enemy_x, enemy_y + 1),
+            (enemy_x, enemy_y - 1),
+        ]
+        if (next_x, next_y) in cant_be_there:
+            return True
+
+    elif enemy_dir == 0 or enemy_dir == 2:
+        cant_be_there = [
+            (enemy_x + 1, enemy_y),
+            (enemy_x - 1, enemy_y),
+        ]
+        if (next_x, next_y) in cant_be_there:
+            return True
+
     return False
 
 
-def in_the_fire(state, nearest_enemy, next_x, next_y):
+def in_the_fire(state, next_x, next_y):
     # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
-    enemy_name = state["enemies"][nearest_enemy]["name"]
-
-    if enemy_name == "Fygar":
-        enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-        enemy_dir = state["enemies"][nearest_enemy]["dir"]
-        if enemy_y == next_y:
-            if (
-                enemy_dir == 1
-                and enemy_x + 4 <= colunas - 1
-                and (
-                    enemy_x == next_x
-                    or enemy_x + 1 == next_x
-                    or enemy_x + 2 == next_x
-                    or enemy_x + 3 == next_x
-                    or enemy_x + 4 == next_x
-                )
-            ):
-                return True
-            elif (
-                enemy_dir == 3
-                and enemy_x - 4 >= 0
-                and (
-                    enemy_x == next_x
-                    or enemy_x - 1 == next_x
-                    or enemy_x - 2 == next_x
-                    or enemy_x - 3 == next_x
-                    or enemy_x - 4 == next_x
-                )
-            ):
-                return True
+    for enemy in state["enemies"]:
+        enemy_name = enemy["name"]
+        if enemy_name == "Fygar":
+            enemy_x, enemy_y = enemy["pos"]
+            enemy_dir = enemy["dir"]
+            if enemy_y == next_y:
+                if (
+                    enemy_dir == 1
+                    and enemy_x + 4 <= colunas - 1
+                    and (
+                        enemy_x == next_x
+                        or enemy_x + 1 == next_x
+                        or enemy_x + 2 == next_x
+                        or enemy_x + 3 == next_x
+                        or enemy_x + 4 == next_x
+                    )
+                ):
+                    return True
+                elif (
+                    enemy_dir == 3
+                    and enemy_x - 4 >= 0
+                    and (
+                        enemy_x == next_x
+                        or enemy_x - 1 == next_x
+                        or enemy_x - 2 == next_x
+                        or enemy_x - 3 == next_x
+                        or enemy_x - 4 == next_x
+                    )
+                ):
+                    return True
     return False
 
 
@@ -423,8 +419,6 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
 
 def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
     move = None
-    print("next x: ", next_x, "next y: ", next_y)
-    print("digdug x: ", digdug_x, "digdug y: ", digdug_y)
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
         mapa[rock_x][rock_y] = 1
