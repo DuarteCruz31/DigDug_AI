@@ -149,7 +149,7 @@ class Enemy(Character):
         self.dir = list(Direction)
         self.step = 0
         self.lastdir = Direction.EAST
-        self.lastpos = None
+        self.lastpos = pos
         self.freeze = False
         self._alive = lives  # TODO increase according to level
         self.exit = False
@@ -182,7 +182,7 @@ class Enemy(Character):
         return str(self)
 
     def __str__(self):
-        return f"{self._name}({self.pos}, {self._wallpass}, {self._smart})"
+        return f"{self._name}({self.pos}, {self._wallpass}, {self._smart.name})"
 
     def points(self, map_height):
         if self._points:
@@ -252,8 +252,6 @@ class Enemy(Character):
                     open_pos, key=lambda pos: math.dist(digdug.pos, pos), reverse=True
                 )
                 new_pos = next_pos[0]
-            if self.lastpos != self.pos:
-                self.lastdir = self._calc_dir(self.lastpos, self.pos)
 
         elif self._smart == Smart.HIGH:
             enemies_pos = [e.pos for e in enemies if e.id != self.id]
@@ -270,11 +268,11 @@ class Enemy(Character):
             else:
                 next_pos = sorted(open_pos, key=lambda pos: math.dist(digdug.pos, pos))
                 new_pos = next_pos[0]
-            if self.lastpos != self.pos:
-                self.lastdir = self._calc_dir(self.lastpos, self.pos)
 
         self.lastpos = self.pos
         self.pos = new_pos
+        if self._smart in [Smart.NORMAL, Smart.HIGH] and self.lastpos != self.pos:  # LOW does not require direction calculation
+            self.lastdir = self._calc_dir(self.lastpos, self.pos)
 
         if math.dist(self.pos, (0, 0)) < 1:
             self.exit = True
@@ -294,9 +292,6 @@ class Pooka(Enemy):
         self.go_to_corridor = pos
 
     def move(self, mapa, digdug, enemies, rocks):
-        if not self._wallpass:
-            self._wallpass = random.random() < WALLPASS_ODD[self._smart]
-
         if self._wallpass:
             open_pos = [
                 pos
@@ -322,6 +317,9 @@ class Pooka(Enemy):
         if self._wallpass and not mapa.is_blocked(self.pos, False):
             self._wallpass = False
             self.go_to_corridor = random.choice(mapa.enemies_spawn)
+        
+        if not self._wallpass:
+            self._wallpass = random.random() < WALLPASS_ODD[self._smart]
 
 
 class Fygar(Enemy):
