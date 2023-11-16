@@ -1,5 +1,5 @@
 #!/bin/bash
 
 while true; do
-    python3 student.py
+    python3 coiso.py
 done
