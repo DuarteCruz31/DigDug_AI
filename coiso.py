@@ -35,6 +35,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     continue
 
                 digdug_x, digdug_y = state["digdug"]
+                enemies = state["enemies"]
 
                 mapa[digdug_x][digdug_y] = 0
 
@@ -51,7 +52,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     )
                     <= 5
                 ):
-                    move = avoid_enemies(state, digdug_x, digdug_y, enemy_x, enemy_y)
+                    move = avoid_enemies(
+                        state, digdug_x, digdug_y, enemy_x, enemy_y, enemies
+                    )
                     if move is not None:
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
                         last_move = move
@@ -78,7 +81,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     if in_the_fire(state, next_x, next_y):
                         print("In the fire")
                         move = avoid_enemies(
-                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies
                         )
                         if move is not None:
                             await websocket.send(
@@ -98,17 +101,17 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = avoid_rock
                         continue
 
-                    if dangerous_position(state, nearest_enemy, next_x, next_y):
+                    """ if dangerous_position(state, nearest_enemy, next_x, next_y):
                         print("Dangerous position")
                         move = avoid_enemies(
-                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies
                         )
                         if move is not None:
                             await websocket.send(
                                 json.dumps({"cmd": "key", "key": move})
                             )
                             last_move = move
-                            continue
+                            continue """
 
                     if (
                         not_sandwiched(state, mapa, nearest_enemy, next_x, next_y)
@@ -116,7 +119,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     ):
                         print("Sandwiched")
                         move = avoid_enemies(
-                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies
                         )
                         if move is not None:
                             await websocket.send(
@@ -137,7 +140,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     ):
                         print("Enemy too close")
                         move = avoid_enemies(
-                            state, digdug_x, digdug_y, enemy_x, enemy_y
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies
                         )
                         if move is not None:
                             await websocket.send(
@@ -430,8 +433,105 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
     return move
 
 
-def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
-    if next_x <= 1 or next_x >= colunas - 3:
+def avoid_enemies(state, digdug_x, digdug_y, enemy_x, enemy_y, enemies):
+    enemyOnright = False
+    enemyOnleft = False
+    enemyOnTop = False
+    enemyOnBottom = False
+
+    for enemy in enemies:
+        enemy_x, enemy_y = enemy["pos"]
+        if digdug_x < enemy_x and abs(digdug_x - enemy_x) <= 3 and digdug_y == enemy_y:
+            enemyOnleft = True
+        elif (
+            digdug_x > enemy_x and abs(digdug_x - enemy_x) <= 3 and digdug_y == enemy_y
+        ):
+            enemyOnright = True
+        elif (
+            digdug_y < enemy_y and abs(digdug_y - enemy_y) <= 3 and digdug_x == enemy_x
+        ):
+            enemyOnTop = True
+        elif (
+            digdug_y > enemy_y and abs(digdug_y - enemy_y) <= 3 and digdug_x == enemy_x
+        ):
+            enemyOnBottom = True
+
+    (countL, countR, countT, countB) = count_enemies_in_each_side(
+        digdug_x, digdug_y, enemies
+    )
+
+    if enemyOnright == True and enemyOnleft == False:
+        if enemyOnTop == True and enemyOnBottom == False:
+            if countL < countB:
+                return "a"
+            elif countL > countB:
+                return "s"
+            else:
+                return "a"
+        elif enemyOnTop == False and enemyOnBottom == True:
+            if countL < countT:
+                return "a"
+            elif countL > countT:
+                return "w"
+            else:
+                return "a"
+        else:
+            return "a"
+    elif enemyOnright == False and enemyOnleft == True:
+        if enemyOnTop == True and enemyOnBottom == False:
+            if countR < countB:
+                return "d"
+            elif countR > countB:
+                return "s"
+            else:
+                return "d"
+        elif enemyOnTop == False and enemyOnBottom == True:
+            if countR < countT:
+                return "d"
+            elif countR > countT:
+                return "w"
+            else:
+                return "d"
+        else:
+            return "d"
+    elif enemyOnright == True and enemyOnleft == True:
+        if enemyOnTop == True and enemyOnBottom == False:
+            if countL < countR:
+                return "a"
+            elif countL > countR:
+                return "d"
+            else:
+                return "a"
+        elif enemyOnTop == False and enemyOnBottom == True:
+            if countL < countR:
+                return "a"
+            elif countL > countR:
+                return "d"
+            else:
+                return "a"
+        else:
+            return "a"
+    elif enemyOnTop == True and enemyOnBottom == True:
+        if enemyOnright == True and enemyOnleft == False:
+            if countT < countB:
+                return "w"
+            elif countT > countB:
+                return "s"
+            else:
+                return "w"
+        elif enemyOnright == False and enemyOnleft == True:
+            if countT < countB:
+                return "w"
+            elif countT > countB:
+                return "s"
+            else:
+                return "w"
+        else:
+            return "w"
+    else:
+        return None
+
+    """ if next_x <= 1 or next_x >= colunas - 3:
         return "w"
     if next_y <= 1 or next_y >= linhas - 4:
         return "a"
@@ -454,7 +554,28 @@ def avoid_enemies(state, next_x, next_y, enemy_x, enemy_y):
     elif next_y > enemy_y:
         return "s"
     else:
-        return None
+        return None """
+
+
+def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
+    countL = 0
+    countR = 0
+    countT = 0
+    countB = 0
+
+    for enemy in enemies:
+        enemy_x, enemy_y = enemy["pos"]
+        if abs(enemy_x - digdug_x) <= 5 and abs(enemy_y - digdug_y) <= 5:
+            if enemy_x < digdug_x:
+                countL += 1
+            elif enemy_x > digdug_x:
+                countR += 1
+            elif enemy_y < digdug_y:
+                countT += 1
+            elif enemy_y > digdug_y:
+                countB += 1
+
+    return (countL, countR, countT, countB)
 
 
 def algoritmo_search(movimentos, state, enemy, strategy, mapa):
@@ -602,6 +723,8 @@ def nearest_distance(state, mapa):
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
+        if enemy["pos"][0] == 0 and enemy["dir"] == 3:
+            continue
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance
