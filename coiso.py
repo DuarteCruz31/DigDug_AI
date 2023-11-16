@@ -490,58 +490,34 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
         if rock_x == next_x and rock_y == next_y:
-            if digdug_x > rock_x:
-                if digdug_y > rock_y:
-                    if mapa[rock_x + 1][rock_y] == 0:
-                        move = "d"
-                    elif mapa[rock_x][rock_y + 1] == 0:
-                        move = "s"
-                elif digdug_y < rock_y:
-                    if mapa[rock_x + 1][rock_y] == 0:
-                        move = "d"
-                    elif mapa[rock_x][rock_y - 1] == 0:
-                        move = "w"
-                else:
+            if digdug_x < rock_x:
+                if rock_x + 1 <= colunas - 1:
+                    move = "w"
+                elif rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0:
+                    move = "s"
+                elif rock_y - 1 >= 0 and mapa[rock_x][rock_y - 1] == 0:
+                    move = "w"
+            elif digdug_x > rock_x:
+                if rock_x - 1 >= 0 and mapa[rock_x - 1][rock_y] == 0:
+                    move = "a"
+                elif rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0:
+                    move = "s"
+                elif rock_y - 1 >= 0 and mapa[rock_x][rock_y - 1] == 0:
+                    move = "w"
+            elif digdug_y < rock_y:
+                if rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0:
+                    move = "s"
+                elif rock_x + 1 <= colunas - 1 and mapa[rock_x + 1][rock_y] == 0:
                     move = "d"
-            elif digdug_x < rock_x:
-                if digdug_y > rock_y:
-                    if mapa[rock_x - 1][rock_y] == 0:
-                        move = "a"
-                    elif mapa[rock_x][rock_y + 1] == 0:
-                        move = "s"
-                elif digdug_y < rock_y:
-                    if mapa[rock_x - 1][rock_y] == 0:
-                        move = "a"
-                    elif mapa[rock_x][rock_y - 1] == 0:
-                        move = "w"
-                else:
+                elif rock_x - 1 >= 0 and mapa[rock_x - 1][rock_y] == 0:
                     move = "a"
             elif digdug_y > rock_y:
-                if digdug_x > rock_x:
-                    if mapa[rock_x][rock_y + 1] == 0:
-                        move = "s"
-                    elif mapa[rock_x + 1][rock_y] == 0:
-                        move = "d"
-                elif digdug_x < rock_x:
-                    if mapa[rock_x][rock_y + 1] == 0:
-                        move = "s"
-                    elif mapa[rock_x - 1][rock_y] == 0:
-                        move = "a"
-                else:
-                    move = "s"
-            elif digdug_y < rock_y:
-                if digdug_x > rock_x:
-                    if mapa[rock_x][rock_y - 1] == 0:
-                        move = "w"
-                    elif mapa[rock_x + 1][rock_y] == 0:
-                        move = "d"
-                elif digdug_x < rock_x:
-                    if mapa[rock_x][rock_y - 1] == 0:
-                        move = "w"
-                    elif mapa[rock_x - 1][rock_y] == 0:
-                        move = "a"
-                else:
+                if rock_y - 1 >= 0 and mapa[rock_x][rock_y - 1] == 0:
                     move = "w"
+                elif rock_x + 1 <= colunas - 1 and mapa[rock_x + 1][rock_y] == 0:
+                    move = "d"
+                elif rock_x - 1 >= 0 and mapa[rock_x - 1][rock_y] == 0:
+                    move = "a"
 
     return move
 
