@@ -346,10 +346,10 @@ def avoid_enemies(
     minIndex = 0
     for i in range(4):
         if (
-            (i == 0 and fire_right)
-            or (i == 1 and fire_left)
-            or (i == 2 and fire_up)
-            or (i == 3 and fire_down)
+            ((i == 0 and fire_right) or (i == 0 and digdug_x == colunas - 1))
+            or ((i == 1 and fire_left) or (i == 1 and digdug_x == 0))
+            or ((i == 2 and fire_up) or (i == 2 and digdug_y == 0))
+            or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 1))
         ):
             continue
 
@@ -358,26 +358,6 @@ def avoid_enemies(
             minIndex = i
 
     (countRight, countLeft, countTop, countBottom) = count
-
-    if digdug_x == 0 or digdug_x == colunas - 1:
-        if last_move == "a" or last_move == "d":
-            if (
-                countTop < countBottom
-                and digdug_y > 0
-                and not in_the_fire(state, digdug_x, digdug_y + 1)
-            ):
-                return "w"
-            else:
-                return "s"
-
-    elif digdug_y == 0 or digdug_y == linhas - 1:
-        if last_move == "w" or last_move == "s":
-            if countLeft < countRight and not in_the_fire(
-                state, digdug_x - 1, digdug_y
-            ):
-                return "a"
-            else:
-                return "d"
 
     enemyOnRight = False
     enemyOnLeft = False
