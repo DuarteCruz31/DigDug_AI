@@ -2,12 +2,8 @@ import asyncio
 import getpass
 import json
 import os
-import time
 import websockets
-from digdug import *
 import math
-from tree_search import *
-from digdug import *
 from search import *
 
 possible_movimentos = None

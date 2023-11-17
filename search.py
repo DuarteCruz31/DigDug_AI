@@ -85,3 +85,5 @@ def astar(maze, start, end):
                     continue
 
             open_list.append(child)
+
+    return None
