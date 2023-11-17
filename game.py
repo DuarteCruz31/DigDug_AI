@@ -8,10 +8,10 @@ from mapa import VITAL_SPACE, Map
 from consts import Smart, LIVES, TIMEOUT, MAX_LEN_ROPE, MIN_ENEMIES
 
 logger = logging.getLogger("Game")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 INITIAL_SCORE = 0
-GAME_SPEED = 10
+GAME_SPEED = 30
 MAP_SIZE = (48, 24)
 
 

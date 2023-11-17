@@ -4,17 +4,13 @@ import json
 import os
 import time
 import websockets
-from digdug import *
 import math
-from tree_search import *
-from digdug import *
-import networkx as nx
+from search import *
 
 possible_movimentos = None
 mapa = None
 linhas = 24
 colunas = 48
-G = nx.grid_2d_graph(48, 24)
 
 
 async def agent_loop(server_address="localhost:8000", agent_name="student"):
@@ -778,9 +774,7 @@ def algoritmo_search(state, enemy, strategy, mapa):
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
 
-    return nx.astar_path(
-        G, (digdug_x, digdug_y), (enemy_x, enemy_y), heuristic=cal_heuristic
-    )
+    return astar(mapa, (digdug_x, digdug_y), (enemy_x, enemy_y))
 
 
 def nearest_distance(state, mapa):
