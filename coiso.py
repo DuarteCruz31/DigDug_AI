@@ -81,8 +81,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1][1:-1].split(", ")
-                    nextStep = [int(nextStepList[0]), int(
-                        nextStepList[1])]
+                    nextStep = [int(nextStepList[0]), int(nextStepList[1])]
                     next_x, next_y = nextStep[0], nextStep[1]
 
                     """ move = dangerous_position(
@@ -101,6 +100,47 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
                         last_move = move
                         continue """
+
+                    if dangerous_position(
+                        state,
+                        nearest_enemy,
+                        next_x,
+                        next_y,
+                        digdug_x,
+                        digdug_y,
+                        enemies,
+                    ):
+                        # print("Dangerous position")
+                        move = avoid_Rocks(
+                            state,
+                            mapa,
+                            next_x,
+                            next_y,
+                            digdug_x,
+                            digdug_y,
+                            enemies,
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
+                        move = avoid_enemies(
+                            state,
+                            digdug_x,
+                            digdug_y,
+                            enemy_x,
+                            enemy_y,
+                            enemies,
+                            last_move,
+                        )
+                        if move is not None:
+                            await websocket.send(
+                                json.dumps({"cmd": "key", "key": move})
+                            )
+                            last_move = move
+                            continue
 
                     move = avoid_Rocks(
                         state,
@@ -253,6 +293,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 def dangerous_position(
     state, nearest_enemy, next_x, next_y, digdug_x, digdug_y, enemies
 ):
+    # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
     """(countRight, countLeft, countTop, countBottom) = count_enemies_in_each_side(
         digdug_x, digdug_y, enemies
     )"""
@@ -260,15 +301,45 @@ def dangerous_position(
     # check if next position is 1 block away from enemy
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
     enemy_dir = state["enemies"][nearest_enemy]["dir"]
+    
+    if enemy_x - 1 > 0 or enemy_y - 1 > 0 or enemy_x + 1 > colunas or enemy_y + 1 > linhas:
+        return False
 
-    cant_be_there = [
-        (enemy_x, enemy_y + 1),
-        (enemy_x, enemy_y - 1),
-        (enemy_x + 1, enemy_y),
-        (enemy_x - 1, enemy_y),
-    ]
+    if enemy_dir == 1:
+        if (
+            (next_x, next_y)
+            == ((enemy_x + 1, enemy_y + 1) or (enemy_x + 1, enemy_y - 1))
+        ) or (
+            (digdug_x, digdug_y) == ((enemy_x, enemy_y + 1) or (enemy_x, enemy_y - 1))
+        ):
+            return True
+    elif enemy_dir == 3:
+        if (
+            (next_x, next_y)
+            == ((enemy_x - 1, enemy_y + 1) or (enemy_x - 1, enemy_y - 1))
+        ) or (
+            (digdug_x, digdug_y) == ((enemy_x, enemy_y + 1) or (enemy_x, enemy_y - 1))
+        ):
+            return True
+    elif enemy_dir == 0:
+        if (
+            (next_x, next_y)
+            == ((enemy_x + 1, enemy_y - 1) or (enemy_x - 1, enemy_y - 1))
+        ) or (
+            (digdug_x, digdug_y) == ((enemy_x + 1, enemy_y) or (enemy_x - 1, enemy_y))
+        ):
+            return True
+    elif enemy_dir == 2:
+        if (
+            (next_x, next_y)
+            == ((enemy_x + 1, enemy_y + 1) or (enemy_x - 1, enemy_y + 1))
+        ) or (
+            (digdug_x, digdug_y) == ((enemy_x + 1, enemy_y) or (enemy_x - 1, enemy_y))
+        ):
+            return True
+    return False
 
-    if (next_x, next_y) in cant_be_there:
+    """ if (next_x, next_y) in cant_be_there:
         return None
     elif (digdug_x, digdug_y) in cant_be_there:
         if (digdug_x < enemy_x or digdug_x > enemy_x) and digdug_y == enemy_y:
@@ -280,7 +351,7 @@ def dangerous_position(
             if digdug_x > 0 and enemy_dir == 1:
                 return "a"
             elif digdug_x < colunas - 1 and enemy_dir == 3:
-                return "d"
+                return "d" """
 
 
 def in_the_fire(state, next_x, next_y):
@@ -552,10 +623,10 @@ def avoid_enemies(
 ):
     count = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
 
-    fire_right = in_the_fire(state,digdug_x+1,digdug_y)
-    fire_left = in_the_fire(state,digdug_x-1,digdug_y)
-    fire_up = in_the_fire(state,digdug_x,digdug_y-1)
-    fire_down = in_the_fire(state,digdug_x,digdug_y+1)
+    fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
+    fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
+    fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
+    fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
 
     min = math.inf
     minIndex = 0
@@ -568,14 +639,20 @@ def avoid_enemies(
 
     if digdug_x == 0 or digdug_x == colunas - 1:
         if last_move == "a" or last_move == "d":
-            if countTop < countBottom and digdug_y > 0 and not in_the_fire(state,digdug_x,digdug_y+1):
+            if (
+                countTop < countBottom
+                and digdug_y > 0
+                and not in_the_fire(state, digdug_x, digdug_y + 1)
+            ):
                 return "w"
             else:
                 return "s"
 
     elif digdug_y == 0 or digdug_y == linhas - 1:
         if last_move == "w" or last_move == "s":
-            if countLeft < countRight and not in_the_fire(state,digdug_x-1,digdug_y):
+            if countLeft < countRight and not in_the_fire(
+                state, digdug_x - 1, digdug_y
+            ):
                 return "a"
             else:
                 return "d"
