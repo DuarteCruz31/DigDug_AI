@@ -4,7 +4,4 @@ aiohttp
 async-timeout
 websockets
 yarl
-<<<<<<< HEAD
 numpy
-=======
->>>>>>> upstream/main
