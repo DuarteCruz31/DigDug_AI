@@ -440,7 +440,7 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y,nearest_enemy):
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
         mapa[rock_x][rock_y] = 1
-        if next_y == rock_y and (digdug_x - enemy_x == 1 or digdug_y - enemy_y == 1):
+        if next_y == rock_y and (digdug_x - enemy_x < 3 or digdug_y - enemy_y < 3):
             return avoid_enemies(state,next_x,next_y,rock_x,rock_y)
         if rock_x == next_x and rock_y == next_y:
                 if rock_y == digdug_y == enemy_y:

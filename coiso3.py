@@ -492,17 +492,17 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y):
         rock_x, rock_y = rock["pos"]
         if rock_x == next_x and rock_y == next_y:
             if digdug_x < rock_x:
-                if rock_x + 1 <= colunas - 1:
-                    move = "w"
-                elif rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0:
+                if rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0 :
                     move = "s"
+                elif rock_x + 1 <= colunas - 1:
+                    move = "w"
                 elif rock_y - 1 >= 0 and mapa[rock_x][rock_y - 1] == 0:
                     move = "w"
             elif digdug_x > rock_x:
-                if rock_x - 1 >= 0 and mapa[rock_x - 1][rock_y] == 0:
-                    move = "a"
-                elif rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0:
+                if  rock_y + 1 <= linhas - 1 and mapa[rock_x][rock_y + 1] == 0: 
                     move = "s"
+                elif rock_x - 1 >= 0 and mapa[rock_x - 1][rock_y] == 0:
+                    move = "a"
                 elif rock_y - 1 >= 0 and mapa[rock_x][rock_y - 1] == 0:
                     move = "w"
             elif digdug_y < rock_y:
@@ -793,7 +793,7 @@ def nearest_distance(state, mapa):
         if enemy["pos"][0] == 0 and enemy["dir"] == 3:
             continue
         distance = math.dist(state["digdug"], enemy["pos"])
-        if distance < nearest_distance:
+        if distance < nearest_distance and (not 'traverse' in enemy or len(state['enemies']) != 1):
             nearest_distance = distance
             nearest_enemy = i
 
