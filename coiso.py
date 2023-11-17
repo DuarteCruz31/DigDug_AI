@@ -66,13 +66,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         continue
 
                     move = avoid_enemies(
-                        state,
-                        digdug_x,
-                        digdug_y,
-                        enemy_x,
-                        enemy_y,
-                        enemies,
-                        last_move,
+                        state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                     )
                     if move is not None:
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
@@ -128,13 +122,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             last_move = move
                             continue
                         move = avoid_enemies(
-                            state,
-                            digdug_x,
-                            digdug_y,
-                            enemy_x,
-                            enemy_y,
-                            enemies,
-                            last_move,
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
                         if move is not None:
                             await websocket.send(
@@ -162,13 +150,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             last_move = move
                             continue
                         move = avoid_enemies(
-                            state,
-                            digdug_x,
-                            digdug_y,
-                            enemy_x,
-                            enemy_y,
-                            enemies,
-                            last_move,
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
                         if move is not None:
                             await websocket.send(
@@ -198,13 +180,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             last_move = move
                             continue
                         move = avoid_enemies(
-                            state,
-                            digdug_x,
-                            digdug_y,
-                            enemy_x,
-                            enemy_y,
-                            enemies,
-                            last_move,
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
                         if move is not None:
                             await websocket.send(
@@ -241,13 +217,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             last_move = move
                             continue
                         move = avoid_enemies(
-                            state,
-                            digdug_x,
-                            digdug_y,
-                            enemy_x,
-                            enemy_y,
-                            enemies,
-                            last_move,
+                            state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
                         if move is not None:
                             await websocket.send(
@@ -278,9 +248,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 
 def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
-    (countRight, countLeft, countTop, countBottom) = count_enemies_in_each_side(
-        digdug_x, digdug_y, enemies
-    )
+    (
+        countEnemyRight,
+        countEnemyLeft,
+        countEnemyTop,
+        countEnemyBottom,
+    ) = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
+
+    count_rocks = count_rocks_in_each_side(digdug_x, digdug_y, state["rocks"])
+
+    fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
+    fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
+    fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
+    fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -296,12 +276,36 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
                     suicide = False
 
             if suicide:
-                if countLeft < countRight and digdug_x > 0:
+                if countEnemyLeft < countEnemyRight and digdug_x > 0:
                     return "a"
                 else:
                     return "d"
 
-        if rock_x == next_x and rock_y == next_y:
+    min = math.inf
+    minIndex = 0
+    for i in range(4):
+        if (
+            ((i == 0 and fire_right) or (i == 0 and digdug_x == colunas - 3))
+            or ((i == 1 and fire_left) or (i == 1 and digdug_x == 2))
+            or ((i == 2 and fire_up) or (i == 2 and digdug_y == 2))
+            or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 3))
+        ):
+            continue
+
+        if count_rocks[i] < min:
+            min = count_rocks[i]
+            minIndex = i
+
+    if minIndex == 0:
+        return "d"
+    elif minIndex == 1:
+        return "a"
+    elif minIndex == 2:
+        return "w"
+    elif minIndex == 3:
+        return "s"
+
+    """     if rock_x == next_x and rock_y == next_y:
             if digdug_x < rock_x and digdug_y == rock_y:
                 if countTop < countBottom and digdug_y > 0:
                     return "w"
@@ -321,7 +325,7 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
                 if countLeft < countRight and digdug_x > 0:
                     return "a"
                 else:
-                    return "d"
+                    return "d" """
 
     return None
 
@@ -333,9 +337,17 @@ def avoid_enemies(
     nearest_enemy_x,
     nearest_enemy_y,
     enemies,
-    last_move,
+    rocks,
 ):
-    count = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
+    count_rocks = count_rocks_in_each_side(digdug_x, digdug_y, rocks)
+    count_enemies = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
+
+    count_enemies_rocks = [
+        count_rocks[0] + count_enemies[0],
+        count_rocks[1] + count_enemies[1],
+        count_rocks[2] + count_enemies[2],
+        count_rocks[3] + count_enemies[3],
+    ]
 
     fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
     fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
@@ -346,18 +358,16 @@ def avoid_enemies(
     minIndex = 0
     for i in range(4):
         if (
-            ((i == 0 and fire_right) or (i == 0 and digdug_x == colunas - 1))
-            or ((i == 1 and fire_left) or (i == 1 and digdug_x == 0))
-            or ((i == 2 and fire_up) or (i == 2 and digdug_y == 0))
-            or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 1))
+            ((i == 0 and fire_right) or (i == 0 and digdug_x == colunas - 3))
+            or ((i == 1 and fire_left) or (i == 1 and digdug_x == 2))
+            or ((i == 2 and fire_up) or (i == 2 and digdug_y == 2))
+            or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 3))
         ):
             continue
 
-        if count[i] < min:
-            min = count[i]
+        if count_enemies_rocks[i] < min:
+            min = count_enemies_rocks[i]
             minIndex = i
-
-    (countRight, countLeft, countTop, countBottom) = count
 
     enemyOnRight = False
     enemyOnLeft = False
@@ -676,6 +686,27 @@ def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
             elif enemy_y < digdug_y:
                 countT += 1
             elif enemy_y > digdug_y:
+                countB += 1
+
+    return (countR, countL, countT, countB)
+
+
+def count_rocks_in_each_side(digdug_x, digdug_y, rocks):
+    countR = 0
+    countL = 0
+    countT = 0
+    countB = 0
+
+    for rock in rocks:
+        rock_x, rock_y = rock["pos"]
+        if abs(rock_x - digdug_x) <= 1 and abs(rock_y - digdug_y) <= 1:
+            if rock_x < digdug_x:
+                countL += 1
+            elif rock_x > digdug_x:
+                countR += 1
+            elif rock_y < digdug_y:
+                countT += 1
+            elif rock_y > digdug_y:
                 countB += 1
 
     return (countR, countL, countT, countB)
