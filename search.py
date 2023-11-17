@@ -1,132 +1,87 @@
-import sys
+class Node:
+    def __init__(self, parent=None, position=None, steps=None):
+        self.parent = parent
+        self.position = position
+        self.steps = steps if steps is not None else []
+
+        self.g = 0
+        self.h = 0
+        self.f = 0
+
+    def __eq__(self, other):
+        return self.position == other.position
 
 
-class Graph(object):
-    def __init__(self, nodes, init_graph):
-        self.nodes = nodes
-        self.graph = self.construct_graph(nodes, init_graph)
+def astar(maze, start, end):
+    start_node = Node(None, start)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = Node(None, end)
+    end_node.g = end_node.h = end_node.f = 0
 
-    def construct_graph(self, nodes, init_graph):
-        """
-        This method makes sure that the graph is symmetrical. In other words, if there's a path from node A to B with a value V, there needs to be a path from node B to node A with a value V.
-        """
-        graph = {}
-        for node in nodes:
-            graph[node] = {}
+    open_list = []
+    closed_list = []
 
-        graph.update(init_graph)
+    open_list.append(start_node)
 
-        for node, edges in graph.items():
-            for adjacent_node, value in edges.items():
-                if graph[adjacent_node].get(node, False) == False:
-                    graph[adjacent_node][node] = value
+    while len(open_list) > 0:
+        current_node = open_list[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
 
-        return graph
+        open_list.pop(current_index)
+        closed_list.append(current_node)
 
-    def get_nodes(self):
-        "Returns the nodes of the graph."
-        return self.nodes
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            return path[::-1]
 
-    def get_outgoing_edges(self, node):
-        "Returns the neighbors of a node."
-        connections = []
-        for out_node in self.nodes:
-            if self.graph[node].get(out_node, False) != False:
-                connections.append(out_node)
-        return connections
+        children = []
+        for new_position in [
+            (0, -1),
+            (0, 1),
+            (-1, 0),
+            (1, 0),
+        ]:
+            node_position = (
+                current_node.position[0] + new_position[0],
+                current_node.position[1] + new_position[1],
+            )
 
-    def value(self, node1, node2):
-        "Returns the value of an edge between two nodes."
-        return self.graph[node1][node2]
+            if (
+                node_position[0] > (len(maze) - 1)
+                or node_position[0] < 0
+                or node_position[1] > (len(maze[len(maze) - 1]) - 1)
+                or node_position[1] < 0
+            ):
+                continue
 
+            new_node = Node(
+                current_node, node_position, current_node.steps + [node_position]
+            )
 
-def dijkstra_algorithm(graph, start_node):
-    unvisited_nodes = list(graph.get_nodes())
+            children.append(new_node)
 
-    # We'll use this dict to save the cost of visiting each node and update it as we move along the graph
-    shortest_path = {}
+        for child in children:
+            for closed_child in closed_list:
+                if child == closed_child:
+                    continue
 
-    # We'll use this dict to save the shortest known path to a node found so far
-    previous_nodes = {}
+            # A heurisitca é isto
+            child.g = current_node.g + 1
+            child.h = ((child.position[0] - end_node.position[0]) ** 2) + (
+                (child.position[1] - end_node.position[1]) ** 2
+            )
+            child.f = child.g + child.h
 
-    # We'll initialize the cost of visiting each node with infinity
-    for node in unvisited_nodes:
-        shortest_path[node] = sys.maxsize
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
+                    continue
 
-    # We'll set the cost of visiting the start node to 0
-    shortest_path[start_node] = 0
-
-    while len(unvisited_nodes) > 0:
-        # We'll get the unvisited node with the lowest cost
-        current_node = None
-        for node in unvisited_nodes:
-            if current_node == None:
-                current_node = node
-            elif shortest_path[node] < shortest_path[current_node]:
-                current_node = node
-
-        # We'll get the neighbors of the current node
-        neighbors = graph.get_outgoing_edges(current_node)
-
-        # We'll calculate the cost of visiting each neighbor
-        for neighbor in neighbors:
-            cost = graph.value(current_node, neighbor) + shortest_path[current_node]
-
-            # If the cost is lower than the previously known cost, we'll update the cost and the shortest path
-            if cost < shortest_path[neighbor]:
-                shortest_path[neighbor] = cost
-                previous_nodes[neighbor] = current_node
-
-        # We'll remove the current node from the list of unvisited nodes
-        unvisited_nodes.remove(current_node)
-
-    return previous_nodes
-
-
-def print_result(previous_nodes, start_node, target_node):
-    path = []
-    node = target_node
-
-    # print(previous_nodes)
-
-    while node != start_node:
-        path.append(node)
-        if node not in previous_nodes:
-            return None
-        node = previous_nodes[node]
-
-    path = ["(" + str(tuple[0]) + ", " + str(tuple[1]) + ")" for tuple in path]
-
-    path.append("(" + str(start_node[0]) + ", " + str(start_node[1]) + ")")
-
-    return path
-
-
-def shortest_path(graph, node1, node2):
-    path_list = [[node1]]
-    path_index = 0
-    # To keep track of previously visited nodes
-    previous_nodes = {node1}
-    if node1 == node2:
-        return path_list[0]
-
-    while path_index < len(path_list):
-        current_path = path_list[path_index]
-        last_node = current_path[-1]
-        next_nodes = graph[last_node]
-        # Search goal node
-        if node2 in next_nodes:
-            current_path.append(node2)
-            return current_path
-        # Add new paths
-        for next_node in next_nodes:
-            if not next_node in previous_nodes:
-                new_path = current_path[:]
-                new_path.append(next_node)
-                path_list.append(new_path)
-                # To avoid backtracking
-                previous_nodes.add(next_node)
-        # Continue to next path in list
-        path_index += 1
-    # No path is found
-    return []
+            open_list.append(child)
