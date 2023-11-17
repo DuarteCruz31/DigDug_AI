@@ -8,18 +8,18 @@ from digdug import *
 import math
 from tree_search import *
 from digdug import *
+import networkx as nx
 
 possible_movimentos = None
 mapa = None
 linhas = 24
 colunas = 48
+G = nx.grid_2d_graph(48, 24)
 
 
 async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
-        tree_controller = 0
-        possible_movimentos = None
         last_move = None
         acao = None
         while True:
@@ -55,6 +55,20 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     )
                     <= 5
                 ):
+                    move = avoid_Rocks(
+                        state,
+                        mapa,
+                        next_x,
+                        next_y,
+                        digdug_x,
+                        digdug_y,
+                        enemies,
+                    )
+                    if move is not None:
+                        await websocket.send(json.dumps({"cmd": "key", "key": move}))
+                        last_move = move
+                        continue
+
                     move = avoid_enemies(
                         state,
                         digdug_x,
@@ -69,37 +83,28 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = move
                         continue
 
-                if tree_controller % 10 == 0:
-                    possible_movimentos = param_algoritmo(mapa)
-
-                tree_controller += 1
-
-                if possible_movimentos is not None:
-                    acao = algoritmo_search(
-                        possible_movimentos, state, nearest_enemy, "greedy", mapa
-                    )
+                acao = algoritmo_search(state, nearest_enemy, "greedy", mapa)
 
                 if acao != None and len(acao) > 1:
-                    nextStepList = acao[1][1:-1].split(", ")
+                    # print(acao)
+                    nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
                     next_x, next_y = nextStep[0], nextStep[1]
 
-                    """ move = dangerous_position(
+                    move = avoid_Rocks(
                         state,
-                        nearest_enemy,
+                        mapa,
                         next_x,
                         next_y,
                         digdug_x,
                         digdug_y,
                         enemies,
                     )
-                    print(move)
-                    if move is not None and not can_shoot(
-                        state, mapa, last_move, nearest_enemy
-                    ):
+                    if move is not None:
+                        # print("Avoiding rock")
                         await websocket.send(json.dumps({"cmd": "key", "key": move}))
                         last_move = move
-                        continue """
+                        continue
 
                     if dangerous_position(
                         state,
@@ -141,21 +146,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
-
-                    move = avoid_Rocks(
-                        state,
-                        mapa,
-                        next_x,
-                        next_y,
-                        digdug_x,
-                        digdug_y,
-                        enemies,
-                    )
-                    if move is not None:
-                        # print("Avoiding rock")
-                        await websocket.send(json.dumps({"cmd": "key", "key": move}))
-                        last_move = move
-                        continue
 
                     # Se ele estiver para ir contra o fogo do fygar foge
                     if in_the_fire(state, next_x, next_y):
@@ -232,6 +222,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                         last_move = "A"
                         continue
+
                     if (
                         (abs(digdug_x - enemy_x) < 3 and digdug_y == enemy_y)
                         or (abs(digdug_y - enemy_y) < 3 and digdug_x == enemy_x)
@@ -290,6 +281,152 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 return
 
 
+def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
+    (countRight, countLeft, countTop, countBottom) = count_enemies_in_each_side(
+        digdug_x, digdug_y, enemies
+    )
+
+    for rock in state["rocks"]:
+        rock_x, rock_y = rock["pos"]
+
+        if digdug_x == rock_x and digdug_y > rock_y:
+            coord_between_rock_digdug = []
+            suicide = True
+            for i in range(rock_y + 1, digdug_y):
+                coord_between_rock_digdug.append([rock_x, i])
+
+            for coord in coord_between_rock_digdug:
+                if mapa[coord[0]][coord[1]] == 1:
+                    suicide = False
+
+            if suicide:
+                if countLeft < countRight and digdug_x > 0:
+                    return "a"
+                else:
+                    return "d"
+
+        if rock_x == next_x and rock_y == next_y:
+            if digdug_x < rock_x and digdug_y == rock_y:
+                if countTop < countBottom and digdug_y > 0:
+                    return "w"
+                else:
+                    return "s"
+            elif digdug_x > rock_x and digdug_y == rock_y:
+                if countTop < countBottom and digdug_y > 0:
+                    return "w"
+                else:
+                    return "s"
+            elif digdug_y < rock_y and digdug_x == rock_x:
+                if countLeft < countRight and digdug_x > 0:
+                    return "a"
+                else:
+                    return "d"
+            elif digdug_y > rock_y and digdug_x == rock_x:
+                if countLeft < countRight and digdug_x > 0:
+                    return "a"
+                else:
+                    return "d"
+
+    return None
+
+
+def avoid_enemies(
+    state,
+    digdug_x,
+    digdug_y,
+    nearest_enemy_x,
+    nearest_enemy_y,
+    enemies,
+    last_move,
+):
+    count = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
+
+    fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
+    fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
+    fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
+    fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
+
+    min = math.inf
+    minIndex = 0
+    for i in range(4):
+        if (
+            (i == 0 and fire_right)
+            or (i == 1 and fire_left)
+            or (i == 2 and fire_up)
+            or (i == 3 and fire_down)
+        ):
+            continue
+
+        if count[i] < min:
+            min = count[i]
+            minIndex = i
+
+    (countRight, countLeft, countTop, countBottom) = count
+
+    if digdug_x == 0 or digdug_x == colunas - 1:
+        if last_move == "a" or last_move == "d":
+            if (
+                countTop < countBottom
+                and digdug_y > 0
+                and not in_the_fire(state, digdug_x, digdug_y + 1)
+            ):
+                return "w"
+            else:
+                return "s"
+
+    elif digdug_y == 0 or digdug_y == linhas - 1:
+        if last_move == "w" or last_move == "s":
+            if countLeft < countRight and not in_the_fire(
+                state, digdug_x - 1, digdug_y
+            ):
+                return "a"
+            else:
+                return "d"
+
+    enemyOnRight = False
+    enemyOnLeft = False
+    enemyOnTop = False
+    enemyOnBottom = False
+
+    if digdug_x < nearest_enemy_x and digdug_y == nearest_enemy_y:
+        enemyOnRight = True
+    elif digdug_x > nearest_enemy_x and digdug_y == nearest_enemy_y:
+        enemyOnLeft = True
+    elif digdug_y < nearest_enemy_y and digdug_x == nearest_enemy_x:
+        enemyOnBottom = True
+    elif digdug_y > nearest_enemy_y and digdug_x == nearest_enemy_x:
+        enemyOnTop = True
+
+    if enemyOnRight:
+        if minIndex == 1:
+            return "a"
+        elif minIndex == 2:
+            return "w"
+        elif minIndex == 3:
+            return "s"
+    elif enemyOnLeft:
+        if minIndex == 0:
+            return "d"
+        elif minIndex == 2:
+            return "w"
+        elif minIndex == 3:
+            return "s"
+    elif enemyOnTop:
+        if minIndex == 0:
+            return "d"
+        elif minIndex == 1:
+            return "a"
+        elif minIndex == 3:
+            return "s"
+    elif enemyOnBottom:
+        if minIndex == 0:
+            return "d"
+        elif minIndex == 1:
+            return "a"
+        elif minIndex == 2:
+            return "w"
+
+
 def dangerous_position(
     state, nearest_enemy, next_x, next_y, digdug_x, digdug_y, enemies
 ):
@@ -301,8 +438,13 @@ def dangerous_position(
     # check if next position is 1 block away from enemy
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
     enemy_dir = state["enemies"][nearest_enemy]["dir"]
-    
-    if enemy_x - 1 > 0 or enemy_y - 1 > 0 or enemy_x + 1 > colunas or enemy_y + 1 > linhas:
+
+    if (
+        enemy_x - 1 > 0
+        or enemy_y - 1 > 0
+        or enemy_x + 1 > colunas
+        or enemy_y + 1 > linhas
+    ):
         return False
 
     if enemy_dir == 1:
@@ -338,20 +480,6 @@ def dangerous_position(
         ):
             return True
     return False
-
-    """ if (next_x, next_y) in cant_be_there:
-        return None
-    elif (digdug_x, digdug_y) in cant_be_there:
-        if (digdug_x < enemy_x or digdug_x > enemy_x) and digdug_y == enemy_y:
-            if digdug_y > 0 and enemy_dir == 2:
-                return "w"
-            elif digdug_y < linhas - 1 and enemy_dir == 0:
-                return "s"
-        elif (digdug_y < enemy_y or digdug_y > enemy_y) and digdug_x == enemy_x:
-            if digdug_x > 0 and enemy_dir == 1:
-                return "a"
-            elif digdug_x < colunas - 1 and enemy_dir == 3:
-                return "d" """
 
 
 def in_the_fire(state, next_x, next_y):
@@ -402,27 +530,21 @@ def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
                     if (
                         enemy_y - digdug_y <= shooting_distance
                         and enemy_y - 3 >= 0
-                        and mapa[digdug_x][enemy_y - 1] == 0
-                        and mapa[digdug_x][enemy_y - 2] == 0
-                        and mapa[digdug_x][enemy_y - 3] == 0
+                        and all(mapa[digdug_x][enemy_y - i] == 0 for i in range(1, 4))
                     ):
                         return False
                 else:
                     if (
                         digdug_y - enemy_y <= shooting_distance
                         and enemy_y + 3 <= linhas - 1
-                        and mapa[digdug_x][enemy_y + 1] == 0
-                        and mapa[digdug_x][enemy_y + 2] == 0
-                        and mapa[digdug_x][enemy_y + 3] == 0
+                        and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
                     ):
                         return False
             elif enemy_y == digdug_y:
                 if (
                     enemy_x > digdug_x
                     and enemy_x - 3 >= 0
-                    and mapa[enemy_x - 1][digdug_y] == 0
-                    and mapa[enemy_x - 2][digdug_y] == 0
-                    and mapa[enemy_x - 3][digdug_y] == 0
+                    and all(mapa[enemy_x - i][digdug_y] == 0 for i in range(1, 4))
                 ):
                     if enemy_x - digdug_x <= shooting_distance:
                         return False
@@ -430,9 +552,7 @@ def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
                     if (
                         digdug_x - enemy_x <= shooting_distance
                         and enemy_x + 3 <= colunas - 1
-                        and mapa[enemy_x + 1][digdug_y] == 0
-                        and mapa[enemy_x + 2][digdug_y] == 0
-                        and mapa[enemy_x + 3][digdug_y] == 0
+                        and all(mapa[enemy_x + i][digdug_y] == 0 for i in range(1, 4))
                     ):
                         return False
     return True
@@ -480,9 +600,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= shooting_distance
             and enemy_x - 3 >= 0
-            and mapa[enemy_x - 1][digdug_y] == 0
-            and mapa[enemy_x - 2][digdug_y] == 0
-            and mapa[enemy_x - 3][digdug_y] == 0
+            and all(mapa[enemy_x - i][enemy_y] == 0 for i in range(1, 4))
             and enemies_not_in_the_same_position(state, nearest_enemy)
             and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
@@ -495,9 +613,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_y == digdug_y
             and digdug_x - enemy_x <= shooting_distance
             and enemy_x + 3 <= colunas - 1
-            and mapa[enemy_x + 1][digdug_y] == 0
-            and mapa[enemy_x + 2][digdug_y] == 0
-            and mapa[enemy_x + 3][digdug_y] == 0
+            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
             and enemies_not_in_the_same_position(state, nearest_enemy)
             and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
@@ -508,9 +624,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_x == digdug_x
             and digdug_y - enemy_y <= shooting_distance
             and enemy_y + 3 <= linhas - 1
-            and mapa[digdug_x][enemy_y + 1] == 0
-            and mapa[digdug_x][enemy_y + 2] == 0
-            and mapa[digdug_x][enemy_y + 3] == 0
+            and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
             and enemies_not_in_the_same_position(state, nearest_enemy)
             and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
@@ -521,9 +635,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
             and enemy_y - 3 >= 0
-            and mapa[digdug_x][enemy_y - 1] == 0
-            and mapa[digdug_x][enemy_y - 2] == 0
-            and mapa[digdug_x][enemy_y - 3] == 0
+            and all(mapa[digdug_x][enemy_y - i] == 0 for i in range(1, 4))
             and enemies_not_in_the_same_position(state, nearest_enemy)
             and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
         ):
@@ -534,9 +646,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= shooting_distance
             and enemy_x - 3 >= 0
-            and mapa[enemy_x - 1][digdug_y] == 0
-            and mapa[enemy_x - 2][digdug_y] == 0
-            and mapa[enemy_x - 3][digdug_y] == 0
+            and all(mapa[enemy_x - i][enemy_y] == 0 for i in range(1, 4))
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
@@ -546,9 +656,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_y == digdug_y
             and digdug_x - enemy_x <= shooting_distance
             and enemy_x + 3 <= colunas - 1
-            and mapa[enemy_x + 1][digdug_y] == 0
-            and mapa[enemy_x + 2][digdug_y] == 0
-            and mapa[enemy_x + 3][digdug_y] == 0
+            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
@@ -558,9 +666,7 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_x == digdug_x
             and digdug_y - enemy_y <= shooting_distance
             and enemy_y + 3 <= linhas - 1
-            and mapa[digdug_x][enemy_y + 1] == 0
-            and mapa[digdug_x][enemy_y + 2] == 0
-            and mapa[digdug_x][enemy_y + 3] == 0
+            and all(mapa[enemy_x][enemy_y + i] == 0 for i in range(1, 4))
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
@@ -570,139 +676,12 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
             and enemy_x == digdug_x
             and enemy_y - digdug_y <= shooting_distance
             and enemy_y - 3 >= 0
-            and mapa[digdug_x][enemy_y - 1] == 0
-            and mapa[digdug_x][enemy_y - 2] == 0
-            and mapa[digdug_x][enemy_y - 3] == 0
+            and all(mapa[enemy_x][enemy_y - i] == 0 for i in range(1, 4))
             and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
             and enemies_not_in_the_same_position(state, nearest_enemy)
         ):
             return True
     return False
-
-
-def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
-    (countRight, countLeft, countTop, countBottom) = count_enemies_in_each_side(
-        digdug_x, digdug_y, enemies
-    )
-
-    for rock in state["rocks"]:
-        rock_x, rock_y = rock["pos"]
-        if rock_x == next_x and rock_y == next_y:
-            if digdug_x < rock_x and digdug_y == rock_y:
-                if countTop < countBottom and digdug_y > 0:
-                    return "w"
-                else:
-                    return "s"
-            elif digdug_x > rock_x and digdug_y == rock_y:
-                if countTop < countBottom and digdug_y > 0:
-                    return "w"
-                else:
-                    return "s"
-            elif digdug_y < rock_y and digdug_x == rock_x:
-                if countLeft < countRight and digdug_x > 0:
-                    return "a"
-                else:
-                    return "d"
-            elif digdug_y > rock_y and digdug_x == rock_x:
-                if countLeft < countRight and digdug_x > 0:
-                    return "a"
-                else:
-                    return "d"
-
-    return None
-
-
-def avoid_enemies(
-    state,
-    digdug_x,
-    digdug_y,
-    nearest_enemy_x,
-    nearest_enemy_y,
-    enemies,
-    last_move,
-):
-    count = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
-
-    fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
-    fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
-    fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
-    fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
-
-    min = math.inf
-    minIndex = 0
-    for i in range(4):
-        if count[i] < min:
-            min = count[i]
-            minIndex = i
-
-    (countRight, countLeft, countTop, countBottom) = count
-
-    if digdug_x == 0 or digdug_x == colunas - 1:
-        if last_move == "a" or last_move == "d":
-            if (
-                countTop < countBottom
-                and digdug_y > 0
-                and not in_the_fire(state, digdug_x, digdug_y + 1)
-            ):
-                return "w"
-            else:
-                return "s"
-
-    elif digdug_y == 0 or digdug_y == linhas - 1:
-        if last_move == "w" or last_move == "s":
-            if countLeft < countRight and not in_the_fire(
-                state, digdug_x - 1, digdug_y
-            ):
-                return "a"
-            else:
-                return "d"
-
-    enemyOnRight = False
-    enemyOnLeft = False
-    enemyOnTop = False
-    enemyOnBottom = False
-
-    if digdug_x < nearest_enemy_x and digdug_y == nearest_enemy_y:
-        # print("enemy on right")
-        enemyOnRight = True
-    elif digdug_x > nearest_enemy_x and digdug_y == nearest_enemy_y:
-        # print("enemy on left")
-        enemyOnLeft = True
-    elif digdug_y < nearest_enemy_y and digdug_x == nearest_enemy_x:
-        # print("enemy on bottom")
-        enemyOnBottom = True
-    elif digdug_y > nearest_enemy_y and digdug_x == nearest_enemy_x:
-        # print("enemy on top")
-        enemyOnTop = True
-
-    if enemyOnRight:
-        if minIndex == 1 and not fire_left:
-            return "a"
-        elif minIndex == 2 and not fire_up:
-            return "w"
-        elif minIndex == 3 and not fire_down:
-            return "s"
-    elif enemyOnLeft:
-        if minIndex == 0 and not fire_right:
-            return "d"
-        elif minIndex == 2 and not fire_up:
-            return "w"
-        elif minIndex == 3 and not fire_down:
-            return "s"
-    elif enemyOnTop:
-        if minIndex == 0 and not fire_right:
-            return "d"
-        elif minIndex == 1 and not fire_left:
-            return "a"
-        elif minIndex == 3 and not fire_down:
-            return "s"
-    elif enemyOnBottom:
-        if minIndex == 0 and not fire_right:
-            return "d"
-        elif minIndex == 1 and not fire_left:
-            return "a"
-        elif minIndex == 2 and not fire_up:
-            return "w"
 
 
 def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
@@ -726,7 +705,7 @@ def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
     return (countR, countL, countT, countB)
 
 
-def algoritmo_search(movimentos, state, enemy, strategy, mapa):
+def algoritmo_search(state, enemy, strategy, mapa):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     digdug_x, digdug_y = state["digdug"]
     enemy_name = state["enemies"][enemy]["name"]
@@ -740,11 +719,9 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
             and enemy_y == digdug_y
             and enemy_y - 2 >= 0
             and digdug_x - enemy_x <= 4
-            and mapa[enemy_x + 1][enemy_y] == 0
-            and mapa[enemy_x + 2][enemy_y] == 0
-            and mapa[enemy_x + 3][enemy_y] == 0
+            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
         ):
-            # print("fygar a esquerda")
+            print("fygar a esquerda")
             enemy_y -= 2
         elif (
             enemy_x > digdug_x
@@ -752,11 +729,9 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
             and enemy_y + 2 <= linhas - 1
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= 4
-            and mapa[enemy_x - 1][enemy_y] == 0
-            and mapa[enemy_x - 2][enemy_y] == 0
-            and mapa[enemy_x - 3][enemy_y] == 0
+            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
         ):
-            # print("fygar a direita")
+            print("fygar a direita")
             enemy_y += 2
     # ver se inimigo tem uma parede a frente
     if (
@@ -803,67 +778,9 @@ def algoritmo_search(movimentos, state, enemy, strategy, mapa):
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
 
-    p = SearchProblem(
-        movimentos,
-        str(tuple(state["digdug"])),
-        str((enemy_x, enemy_y)),
+    return nx.astar_path(
+        G, (digdug_x, digdug_y), (enemy_x, enemy_y), heuristic=cal_heuristic
     )
-    t = SearchTree(p, strategy)
-
-    return t.search()
-
-
-def param_algoritmo(mapa):
-    linhass = 48
-    colunass = 24
-
-    # Lista para armazenar os movimentos no formato ("(x_inicial, y_inicial)", "(x_final, y_final)", 1)
-    possible_moves = []
-    # Dicionario para armazenar as coordenadas no formato {"(x, y)": (x, y)}
-    coordenadas = {}
-
-    for linha in range(linhass):
-        for coluna in range(colunass):
-            # Adicionar movimentos para cima
-            inicio = str((linha, coluna))
-            if linha > 0:
-                fim = str((linha - 1, coluna))
-                if mapa[linha - 1][coluna] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-            # Adicionar movimentos para baixo
-            if linha < linhass - 1:
-                fim = str((linha + 1, coluna))
-                if mapa[linha + 1][coluna] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-            # Adicionar movimentos para a esquerda
-            if coluna > 0:
-                fim = str((linha, coluna - 1))
-                if mapa[linha][coluna - 1] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-            # Adicionar movimentos para a direita
-            if coluna < colunass - 1:
-                fim = str((linha, coluna + 1))
-                if mapa[linha][coluna + 1] == 0:
-                    possible_moves.append((inicio, fim, 1))
-                else:
-                    possible_moves.append((inicio, fim, 100))
-
-            coordenada = (linha, coluna)
-            coordenada_str = f"({linha}, {coluna})"
-            coordenadas[coordenada_str] = coordenada
-
-    possible_movimentos = DigDug(
-        possible_moves,
-        coordenadas,
-    )
-
-    return possible_movimentos
 
 
 def nearest_distance(state, mapa):
@@ -871,8 +788,6 @@ def nearest_distance(state, mapa):
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
-        if enemy["pos"][0] == 0 and enemy["dir"] == 3:
-            continue
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance
@@ -883,6 +798,10 @@ def nearest_distance(state, mapa):
 
 def calc_dist(pos1, pos2):
     return math.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
+
+
+def cal_heuristic(e1, e2):
+    return math.dist(e1, e2)
 
 
 loop = asyncio.get_event_loop()
