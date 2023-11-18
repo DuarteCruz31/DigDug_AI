@@ -2,7 +2,6 @@ import asyncio
 import getpass
 import json
 import os
-import time
 import websockets
 import math
 from search import *
@@ -121,6 +120,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -149,6 +149,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -179,6 +180,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -216,6 +218,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -605,6 +608,13 @@ def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
                     and abs(enemy_x - digdug_x) <= 3
                 ):
                     return False
+            elif enemy_x == digdug_x and nearest_y == digdug_y:
+                if abs(digdug_y - enemy_y) <= 3:
+                    return False
+            elif enemy_y == digdug_y and nearest_x == digdug_x:
+                if abs(digdug_x - enemy_x) <= 3:
+                    return False
+
     return True
 
 

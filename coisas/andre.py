@@ -2,7 +2,6 @@ import asyncio
 import getpass
 import json
 import os
-import time
 import websockets
 import math
 from search import *
@@ -96,7 +95,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = move
                         continue
 
-                    if dangerous_position(
+                    """ if dangerous_position(
                         state,
                         nearest_enemy,
                         next_x,
@@ -121,6 +120,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -129,7 +129,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                                 json.dumps({"cmd": "key", "key": move})
                             )
                             last_move = move
-                            continue
+                            continue """
 
                     # Se ele estiver para ir contra o fogo do fygar foge
                     if in_the_fire(state, next_x, next_y):
@@ -149,6 +149,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -179,6 +180,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -216,6 +218,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             )
                             last_move = move
                             continue
+
                         move = avoid_enemies(
                             state, digdug_x, digdug_y, enemy_x, enemy_y, enemies, rocks
                         )
@@ -274,6 +277,11 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
     fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
     fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
 
+    enemies_coord = []
+    for enemy in enemies:
+        enemy_x, enemy_y = enemy["pos"]
+        enemies_coord.append([enemy_x, enemy_y])
+
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
 
@@ -312,14 +320,21 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
                         )
                     ):
                         continue
-
-                    if countRockRight > 0 and i == 1:
+                    elif countRockRight > 0 and i == 1:
                         continue
                     elif countRockLeft > 0 and i == 0:
                         continue
                     elif countRockTop > 0 and i == 3:
                         continue
                     elif countRockBottom > 0 and i == 2:
+                        continue
+                    elif digdug_x + 1 in enemies_coord and i == 0:
+                        continue
+                    elif digdug_x - 1 in enemies_coord and i == 1:
+                        continue
+                    elif digdug_y - 1 in enemies_coord and i == 2:
+                        continue
+                    elif digdug_y + 1 in enemies_coord and i == 3:
                         continue
 
                     if count_rocks_enemies[i] < min:
@@ -362,6 +377,11 @@ def avoid_enemies(
     fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
     fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
 
+    enemies_coord = []
+    for enemy in enemies:
+        enemy_x, enemy_y = enemy["pos"]
+        enemies_coord.append([enemy_x, enemy_y])
+
     min = math.inf
     minIndex = 0
     for i in range(4):
@@ -371,6 +391,14 @@ def avoid_enemies(
             or ((i == 2 and fire_up) or (i == 2 and digdug_y == 2))
             or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 3))
         ):
+            continue
+        elif digdug_x + 1 in enemies_coord and i == 0:
+            continue
+        elif digdug_x - 1 in enemies_coord and i == 1:
+            continue
+        elif digdug_y - 1 in enemies_coord and i == 2:
+            continue
+        elif digdug_y + 1 in enemies_coord and i == 3:
             continue
 
         if count_enemies_rocks[i] < min:
@@ -580,6 +608,13 @@ def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
                     and abs(enemy_x - digdug_x) <= 3
                 ):
                     return False
+            elif enemy_x == digdug_x and nearest_y == digdug_y:
+                if abs(digdug_y - enemy_y) <= 3:
+                    return False
+            elif enemy_y == digdug_y and nearest_x == digdug_x:
+                if abs(digdug_x - enemy_x) <= 3:
+                    return False
+
     return True
 
 
@@ -678,78 +713,12 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
     return False
 
 
-def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
-    countR = 0
-    countL = 0
-    countT = 0
-    countB = 0
-
-    for enemy in enemies:
-        enemy_x, enemy_y = enemy["pos"]
-        if abs(enemy_x - digdug_x) <= 5 and abs(enemy_y - digdug_y) <= 5:
-            if enemy_x < digdug_x:
-                countL += 1
-            elif enemy_x > digdug_x:
-                countR += 1
-            elif enemy_y < digdug_y:
-                countT += 1
-            elif enemy_y > digdug_y:
-                countB += 1
-
-    return (countR, countL, countT, countB)
-
-
-def count_rocks_in_each_side(digdug_x, digdug_y, rocks):
-    countR = 0
-    countL = 0
-    countT = 0
-    countB = 0
-
-    for rock in rocks:
-        rock_x, rock_y = rock["pos"]
-        if abs(rock_x - digdug_x) <= 1 and abs(rock_y - digdug_y) <= 1:
-            if rock_x == digdug_x - 1:
-                countL += 1
-            elif rock_x == digdug_x + 1:
-                countR += 1
-            elif rock_y == digdug_y - 1:
-                countT += 1
-            elif rock_y == digdug_y + 1:
-                countB += 1
-
-    return (countR, countL, countT, countB)
-
-
 def algoritmo_search(state, enemy, strategy, mapa):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     digdug_x, digdug_y = state["digdug"]
     enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
-    # baixo - 2 ; direita - 1 ;esquerda - 3 ;cima - 0
-    # Acoes para o fygar
-    if enemy_name == "Fygar":
-        if (  # se o digdug esta a direita do fygar
-            enemy_x < digdug_x
-            and enemy_dir == 1
-            and enemy_y == digdug_y
-            and enemy_y - 2 >= 0
-            and digdug_x - enemy_x <= 4
-            and all(enemy_x + i <= colunas - 1 for i in range(1, 4))
-            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
-        ):
-            # print("fygar a esquerda")
-            enemy_y -= 2
-        elif (
-            enemy_x > digdug_x
-            and enemy_dir == 3
-            and enemy_y + 2 <= linhas - 1
-            and enemy_y == digdug_y
-            and enemy_x - digdug_x <= 4
-            and all(enemy_x - i >= 0 for i in range(1, 4))
-            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
-        ):
-            # print("fygar a direita")
-            enemy_y += 2
+
     # ver se inimigo tem uma parede a frente
     if (
         enemy_dir == 0
@@ -796,6 +765,48 @@ def algoritmo_search(state, enemy, strategy, mapa):
             enemy_x += 2
 
     return astar(mapa, (digdug_x, digdug_y), (enemy_x, enemy_y))
+
+
+def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
+    countR = 0
+    countL = 0
+    countT = 0
+    countB = 0
+
+    for enemy in enemies:
+        enemy_x, enemy_y = enemy["pos"]
+        if abs(enemy_x - digdug_x) <= 5 and abs(enemy_y - digdug_y) <= 5:
+            if enemy_x < digdug_x:
+                countL += 1
+            elif enemy_x > digdug_x:
+                countR += 1
+            elif enemy_y < digdug_y:
+                countT += 1
+            elif enemy_y > digdug_y:
+                countB += 1
+
+    return (countR, countL, countT, countB)
+
+
+def count_rocks_in_each_side(digdug_x, digdug_y, rocks):
+    countR = 0
+    countL = 0
+    countT = 0
+    countB = 0
+
+    for rock in rocks:
+        rock_x, rock_y = rock["pos"]
+        if abs(rock_x - digdug_x) <= 1 and abs(rock_y - digdug_y) <= 1:
+            if rock_x == digdug_x - 1:
+                countL += 1
+            elif rock_x == digdug_x + 1:
+                countR += 1
+            elif rock_y == digdug_y - 1:
+                countT += 1
+            elif rock_y == digdug_y + 1:
+                countB += 1
+
+    return (countR, countL, countT, countB)
 
 
 def nearest_distance(state, mapa):
