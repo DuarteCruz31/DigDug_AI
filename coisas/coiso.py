@@ -255,7 +255,19 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
         countEnemyBottom,
     ) = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
 
-    count_rocks = count_rocks_in_each_side(digdug_x, digdug_y, state["rocks"])
+    (
+        countRockRight,
+        countRockLeft,
+        countRockTop,
+        countRockBottom,
+    ) = count_rocks_in_each_side(digdug_x, digdug_y, state["rocks"])
+
+    count_rocks_enemies = [
+        countEnemyRight + countRockRight,
+        countEnemyLeft + countRockLeft,
+        countEnemyTop + countRockTop,
+        countEnemyBottom + countRockBottom,
+    ]
 
     fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
     fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
@@ -281,51 +293,47 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
                 else:
                     return "d"
 
-    min = math.inf
-    minIndex = 0
-    for i in range(4):
-        if (
-            ((i == 0 and fire_right) or (i == 0 and digdug_x == colunas - 3))
-            or ((i == 1 and fire_left) or (i == 1 and digdug_x == 2))
-            or ((i == 2 and fire_up) or (i == 2 and digdug_y == 2))
-            or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 3))
-        ):
-            continue
+        if next_x == rock_x and next_y == rock_y:
+            minIndex = None
+            if sum([countRockRight, countRockLeft, countRockTop, countRockBottom]) != 0:
+                min = math.inf
 
-        if count_rocks[i] < min:
-            min = count_rocks[i]
-            minIndex = i
+                for i in range(4):
+                    if (
+                        (
+                            (i == 0 and fire_right)
+                            or (i == 0 and digdug_x == colunas - 1)
+                        )
+                        or ((i == 1 and fire_left) or (i == 1 and digdug_x == 0))
+                        or ((i == 2 and fire_up) or (i == 2 and digdug_y == 0))
+                        or (
+                            (i == 3 and fire_down)
+                            or (i == 3 and digdug_y == linhas - 1)
+                        )
+                    ):
+                        continue
 
-    if minIndex == 0:
-        return "d"
-    elif minIndex == 1:
-        return "a"
-    elif minIndex == 2:
-        return "w"
-    elif minIndex == 3:
-        return "s"
+                    if countRockRight > 0 and i == 1:
+                        continue
+                    elif countRockLeft > 0 and i == 0:
+                        continue
+                    elif countRockTop > 0 and i == 3:
+                        continue
+                    elif countRockBottom > 0 and i == 2:
+                        continue
 
-    """     if rock_x == next_x and rock_y == next_y:
-            if digdug_x < rock_x and digdug_y == rock_y:
-                if countTop < countBottom and digdug_y > 0:
-                    return "w"
-                else:
-                    return "s"
-            elif digdug_x > rock_x and digdug_y == rock_y:
-                if countTop < countBottom and digdug_y > 0:
-                    return "w"
-                else:
-                    return "s"
-            elif digdug_y < rock_y and digdug_x == rock_x:
-                if countLeft < countRight and digdug_x > 0:
-                    return "a"
-                else:
-                    return "d"
-            elif digdug_y > rock_y and digdug_x == rock_x:
-                if countLeft < countRight and digdug_x > 0:
-                    return "a"
-                else:
-                    return "d" """
+                    if count_rocks_enemies[i] < min:
+                        min = count_rocks_enemies[i]
+                        minIndex = i
+
+            if minIndex == 0:
+                return "d"
+            elif minIndex == 1:
+                return "a"
+            elif minIndex == 2:
+                return "w"
+            elif minIndex == 3:
+                return "s"
 
     return None
 
@@ -700,13 +708,13 @@ def count_rocks_in_each_side(digdug_x, digdug_y, rocks):
     for rock in rocks:
         rock_x, rock_y = rock["pos"]
         if abs(rock_x - digdug_x) <= 1 and abs(rock_y - digdug_y) <= 1:
-            if rock_x < digdug_x:
+            if rock_x == digdug_x - 1:
                 countL += 1
-            elif rock_x > digdug_x:
+            elif rock_x == digdug_x + 1:
                 countR += 1
-            elif rock_y < digdug_y:
+            elif rock_y == digdug_y - 1:
                 countT += 1
-            elif rock_y > digdug_y:
+            elif rock_y == digdug_y + 1:
                 countB += 1
 
     return (countR, countL, countT, countB)
@@ -726,9 +734,10 @@ def algoritmo_search(state, enemy, strategy, mapa):
             and enemy_y == digdug_y
             and enemy_y - 2 >= 0
             and digdug_x - enemy_x <= 4
+            and all(enemy_x + i <= colunas - 1 for i in range(1, 4))
             and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
         ):
-            print("fygar a esquerda")
+            # print("fygar a esquerda")
             enemy_y -= 2
         elif (
             enemy_x > digdug_x
@@ -736,9 +745,10 @@ def algoritmo_search(state, enemy, strategy, mapa):
             and enemy_y + 2 <= linhas - 1
             and enemy_y == digdug_y
             and enemy_x - digdug_x <= 4
+            and all(enemy_x - i >= 0 for i in range(1, 4))
             and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
         ):
-            print("fygar a direita")
+            # print("fygar a direita")
             enemy_y += 2
     # ver se inimigo tem uma parede a frente
     if (
