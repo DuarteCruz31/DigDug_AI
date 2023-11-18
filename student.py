@@ -826,10 +826,6 @@ def calc_dist(pos1, pos2):
     return math.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
 
 
-def cal_heuristic(e1, e2):
-    return math.dist(e1, e2)
-
-
 loop = asyncio.get_event_loop()
 SERVER = os.environ.get("SERVER", "localhost")
 PORT = os.environ.get("PORT", "8000")
