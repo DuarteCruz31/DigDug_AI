@@ -35,7 +35,14 @@ MAX_HIGHSCORES = 10
 class GameServer:
     """Network Game Server."""
 
-    def __init__(self, level: int, timeout: int, seed: int = 0, grading: str = None, dbg: bool = False):
+    def __init__(
+        self,
+        level: int,
+        timeout: int,
+        seed: int = 0,
+        grading: str = None,
+        dbg: bool = False,
+    ):
         """Initialize Gameserver."""
         self.dbg = dbg
         self.seed = seed
@@ -185,12 +192,21 @@ class GameServer:
                                 break
 
                         if self.dbg and self.game.respawn:
-                            self.debug_map(self.game.map, self.game._digdug, self.game._enemies)
+                            self.debug_map(
+                                self.game.map, self.game._digdug, self.game._enemies
+                            )
 
                 self.save_highscores(self.game.score)
 
                 game_info = self.game.info()
                 game_info["player"] = self.current_player.name
+
+                # mandar scores para ficheiro
+                f = open("./coisas/scores.txt", "a")
+                f.write(
+                    f"{self.current_player.name} {self.game.score} {self.game.level}\n"
+                )
+                f.close()
 
                 await self.send_info(game_info, highscores=True)
                 await self.current_player.ws.close()
@@ -218,7 +234,9 @@ if __name__ == "__main__":
     parser.add_argument("--bind", help="IP address to bind to", default="")
     parser.add_argument("--port", help="TCP port", type=int, default=8000)
     parser.add_argument("--seed", help="Seed number", type=int, default=0)
-    parser.add_argument("--debug", help="Open Bitmap with map on gameover", action='store_true')
+    parser.add_argument(
+        "--debug", help="Open Bitmap with map on gameover", action="store_true"
+    )
     parser.add_argument(
         "--grading-server",
         help="url of grading server",
