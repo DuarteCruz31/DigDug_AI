@@ -11,7 +11,7 @@ logger = logging.getLogger("Game")
 logger.setLevel(logging.INFO)
 
 INITIAL_SCORE = 0
-GAME_SPEED = 1000
+GAME_SPEED = 200
 MAP_SIZE = (48, 24)
 
 
@@ -219,7 +219,7 @@ class Game:
         return True
 
     def kill_digdug(self):
-        if self.respawn:    #we are already dead, no need to kill again
+        if self.respawn:  # we are already dead, no need to kill again
             return
         logger.info("[step=%s] Dig Dug has died", self._step)
         self._digdug.kill()

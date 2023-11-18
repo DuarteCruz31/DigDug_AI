@@ -12,10 +12,6 @@ class Node:
         return self.position == other.position
 
 
-def calculate_cost(maze, position):
-    return 1 if maze[position[0]][position[1]] == 1 else 0
-
-
 def astar(maze, start, end):
     start_node = Node(None, start)
     start_node.g = start_node.h = start_node.f = 0
@@ -72,7 +68,7 @@ def astar(maze, start, end):
                 if child == closed_child:
                     continue
 
-            child.g = current_node.g + calculate_cost(maze, child.position)
+            child.g = current_node.g + 1
             child.h = ((child.position[0] - end_node.position[0]) ** 2) + (
                 (child.position[1] - end_node.position[1]) ** 2
             )
