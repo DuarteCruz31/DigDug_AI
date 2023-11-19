@@ -69,9 +69,8 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         continue
 
                 acao = algoritmo_search(state, nearest_enemy, mapa)
-
+                #print(acao)
                 if acao != None and len(acao) > 1:
-                    # print(acao)
                     nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
                     next_x, next_y = nextStep[0], nextStep[1]
@@ -228,6 +227,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     elif digdug_y > next_y:
                         await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
                         last_move = "w"
+                        continue
+                    else:
+                        print("No move")
                         continue
 
             except websockets.exceptions.ConnectionClosedOK:
@@ -728,7 +730,7 @@ def algoritmo_search(state, enemy, mapa):
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
 
-    return astar(mapa, (digdug_x, digdug_y), (enemy_x, enemy_y), state)
+    return astar(mapa, (digdug_x, digdug_y), (enemy_x, enemy_y))
 
 
 def count_enemies_in_each_side(digdug_x, digdug_y, enemies):

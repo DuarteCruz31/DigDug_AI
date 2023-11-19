@@ -24,7 +24,7 @@ wslogger = logging.getLogger("websockets")
 wslogger.setLevel(logging.WARN)
 
 logger = logging.getLogger("Server")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 Player = namedtuple("Player", ["name", "ws"])
 
