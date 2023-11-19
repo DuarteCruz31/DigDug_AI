@@ -16,7 +16,41 @@ def calculate_cost(maze, position):
     return 2 if maze[position[0]][position[1]] == 1 else 0
 
 
-def astar(maze, start, end):
+def in_the_fire(state, position):
+    for enemy in state["enemies"]:
+        enemy_name = enemy["name"]
+        if enemy_name == "Fygar":
+            enemy_x, enemy_y = enemy["pos"]
+            enemy_dir = enemy["dir"]
+            if enemy_y == position[1]:
+                if (
+                    enemy_dir == 1
+                    and enemy_x + 4 <= 48
+                    and (
+                        enemy_x == position[0]
+                        or enemy_x + 1 == position[0]
+                        or enemy_x + 2 == position[0]
+                        or enemy_x + 3 == position[0]
+                        or enemy_x + 4 == position[0]
+                    )
+                ):
+                    return 2
+                elif (
+                    enemy_dir == 3
+                    and enemy_x - 4 >= 0
+                    and (
+                        enemy_x == position[0]
+                        or enemy_x - 1 == position[0]
+                        or enemy_x - 2 == position[0]
+                        or enemy_x - 3 == position[0]
+                        or enemy_x - 4 == position[0]
+                    )
+                ):
+                    return 2
+    return 0
+
+
+def astar(maze, start, end, state):
     start_node = Node(None, start)
     start_node.g = start_node.h = start_node.f = 0
     end_node = Node(None, end)
@@ -68,20 +102,20 @@ def astar(maze, start, end):
             children.append(new_node)
 
         for child in children:
-            for closed_child in closed_list:
-                if child == closed_child:
-                    continue
+            if child in closed_list:
+                continue
 
             child.g = current_node.g + calculate_cost(maze, child.position)
-            child.h = ((child.position[0] - end_node.position[0]) ** 2) + (
-                (child.position[1] - end_node.position[1]) ** 2
+
+            child.h = (
+                ((child.position[0] - end_node.position[0]) ** 2)
+                + ((child.position[1] - end_node.position[1]) ** 2)
+                + 5 * in_the_fire(state, child.position)
             )
+
             child.f = child.g + child.h
 
-            for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
-
-            open_list.append(child)
+            if child not in open_list or child.g < open_list[open_list.index(child)].g:
+                open_list.append(child)
 
     return None
