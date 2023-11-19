@@ -265,6 +265,13 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
         countRockBottom,
     ) = count_rocks_in_each_side(digdug_x, digdug_y, state["rocks"])
 
+    count_rocks = (
+        countRockRight,
+        countRockLeft,
+        countRockTop,
+        countRockBottom,
+    )
+
     count_rocks_enemies = [
         countEnemyRight + countRockRight,
         countEnemyLeft + countRockLeft,
@@ -282,6 +289,11 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
         enemy_x, enemy_y = enemy["pos"]
         enemies_coord.append([enemy_x, enemy_y])
 
+    rocks_coord = []
+    for rock in state["rocks"]:
+        rock_x, rock_y = rock["pos"]
+        rocks_coord.append([rock_x, rock_y])
+
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
 
@@ -296,7 +308,12 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
                     suicide = False
 
             if suicide:
-                if countEnemyLeft < countEnemyRight and digdug_x > 0:
+                if (
+                    countEnemyLeft < countEnemyRight
+                    and digdug_x > 0
+                    and [digdug_x - 1, digdug_y] not in enemies_coord
+                    and [digdug_x - 1, digdug_y] not in rocks_coord
+                ):
                     return "a"
                 else:
                     return "d"
@@ -328,17 +345,25 @@ def avoid_Rocks(state, mapa, next_x, next_y, digdug_x, digdug_y, enemies):
                         continue
                     elif countRockBottom > 0 and i == 2:
                         continue
-                    elif digdug_x + 1 in enemies_coord and i == 0:
+                    elif [digdug_x + 1, digdug_y] in enemies_coord and i == 0:
                         continue
-                    elif digdug_x - 1 in enemies_coord and i == 1:
+                    elif [digdug_x - 1, digdug_y] in enemies_coord and i == 1:
                         continue
-                    elif digdug_y - 1 in enemies_coord and i == 2:
+                    elif [digdug_x, digdug_y - 1] in enemies_coord and i == 2:
                         continue
-                    elif digdug_y + 1 in enemies_coord and i == 3:
+                    elif [digdug_x, digdug_y + 1] in enemies_coord and i == 3:
+                        continue
+                    elif [digdug_x + 1, digdug_y] in rocks_coord and i == 0:
+                        continue
+                    elif [digdug_x - 1, digdug_y] in rocks_coord and i == 1:
+                        continue
+                    elif [digdug_x, digdug_y - 1] in rocks_coord and i == 2:
+                        continue
+                    elif [digdug_x, digdug_y + 1] in rocks_coord and i == 3:
                         continue
 
-                    if count_rocks_enemies[i] < min:
-                        min = count_rocks_enemies[i]
+                    if count_rocks[i] < min:
+                        min = count_rocks[i]
                         minIndex = i
 
             if minIndex == 0:
@@ -362,14 +387,13 @@ def avoid_enemies(
     enemies,
     rocks,
 ):
-    count_rocks = count_rocks_in_each_side(digdug_x, digdug_y, rocks)
-    count_enemies = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
+    count_enemies1 = count_enemies_in_each_side(digdug_x, digdug_y, enemies)
 
-    count_enemies_rocks = [
-        count_rocks[0] + count_enemies[0],
-        count_rocks[1] + count_enemies[1],
-        count_rocks[2] + count_enemies[2],
-        count_rocks[3] + count_enemies[3],
+    count_enemies = [
+        count_enemies1[2],  # top
+        count_enemies1[3],  # bottom
+        count_enemies1[0],  # right
+        count_enemies1[1],  # left
     ]
 
     fire_right = (
@@ -398,27 +422,40 @@ def avoid_enemies(
         enemy_x, enemy_y = enemy["pos"]
         enemies_coord.append([enemy_x, enemy_y])
 
+    rocks_coord = []
+    for rock in rocks:
+        rock_x, rock_y = rock["pos"]
+        rocks_coord.append([rock_x, rock_y])
+
     min = math.inf
     minIndex = 0
     for i in range(4):
         if (
-            ((i == 0 and fire_right) or (i == 0 and digdug_x == colunas - 3))
-            or ((i == 1 and fire_left) or (i == 1 and digdug_x == 2))
-            or ((i == 2 and fire_up) or (i == 2 and digdug_y == 2))
-            or ((i == 3 and fire_down) or (i == 3 and digdug_y == linhas - 3))
+            ((i == 0 and fire_up) or (i == 0 and digdug_y == 2))
+            or ((i == 1 and fire_down) or (i == 1 and digdug_y == linhas - 3))
+            or ((i == 2 and fire_right) or (i == 2 and digdug_x == colunas - 3))
+            or ((i == 3 and fire_left) or (i == 3 and digdug_x == 2))
         ):
             continue
-        elif digdug_x + 1 in enemies_coord and i == 0:
+        elif [digdug_x + 1, digdug_y] in enemies_coord and i == 2:
             continue
-        elif digdug_x - 1 in enemies_coord and i == 1:
+        elif [digdug_x - 1, digdug_y] in enemies_coord and i == 3:
             continue
-        elif digdug_y - 1 in enemies_coord and i == 2:
+        elif [digdug_x, digdug_y - 1] in enemies_coord and i == 0:
             continue
-        elif digdug_y + 1 in enemies_coord and i == 3:
+        elif [digdug_x, digdug_y + 1] in enemies_coord and i == 1:
+            continue
+        elif [digdug_x + 1, digdug_y] in rocks_coord and i == 2:
+            continue
+        elif [digdug_x - 1, digdug_y] in rocks_coord and i == 3:
+            continue
+        elif [digdug_x, digdug_y - 1] in rocks_coord and i == 0:
+            continue
+        elif [digdug_x, digdug_y + 1] in rocks_coord and i == 1:
             continue
 
-        if count_enemies_rocks[i] < min:
-            min = count_enemies_rocks[i]
+        if count_enemies[i] < min:
+            min = count_enemies[i]
             minIndex = i
 
     enemyOnRight = False
@@ -435,34 +472,35 @@ def avoid_enemies(
     elif digdug_y > nearest_enemy_y and digdug_x == nearest_enemy_x:
         enemyOnTop = True
 
+    # top, bottom, right, left
     if enemyOnRight:
-        if minIndex == 1:
-            return "a"
-        elif minIndex == 2:
+        if minIndex == 0:
             return "w"
-        elif minIndex == 3:
+        elif minIndex == 1:
             return "s"
+        elif minIndex == 3:
+            return "a"
     elif enemyOnLeft:
         if minIndex == 0:
-            return "d"
-        elif minIndex == 2:
             return "w"
-        elif minIndex == 3:
-            return "s"
-    elif enemyOnTop:
-        if minIndex == 0:
-            return "d"
         elif minIndex == 1:
-            return "a"
-        elif minIndex == 3:
             return "s"
+        elif minIndex == 2:
+            return "d"
+    elif enemyOnTop:
+        if minIndex == 1:
+            return "s"
+        elif minIndex == 2:
+            return "d"
+        elif minIndex == 3:
+            return "a"
     elif enemyOnBottom:
         if minIndex == 0:
-            return "d"
-        elif minIndex == 1:
-            return "a"
-        elif minIndex == 2:
             return "w"
+        elif minIndex == 2:
+            return "d"
+        elif minIndex == 3:
+            return "a"
 
 
 def dangerous_position(
@@ -736,6 +774,7 @@ def algoritmo_search(state, enemy, strategy, mapa):
     enemy_dir = state["enemies"][enemy]["dir"]
 
     # ver se inimigo tem uma parede a frente
+
     if (
         enemy_dir == 0
         and enemy_y + 3 <= linhas - 1
@@ -749,8 +788,11 @@ def algoritmo_search(state, enemy, strategy, mapa):
         and enemy_x + 1 <= colunas - 1
         and mapa[enemy_x + 1][enemy_y] == 1
     ):  # direita
-        if enemy_name == "Fygar" and enemy_x + 3 <= colunas - 1:
-            enemy_x += 3
+        if enemy_name == "Fygar":
+            if enemy_x + 3 <= colunas - 1:
+                enemy_x += 3
+            else:
+                enemy_y += 2
         else:
             enemy_x -= 3
     elif (
@@ -766,8 +808,11 @@ def algoritmo_search(state, enemy, strategy, mapa):
         and enemy_x - 1 >= 0
         and mapa[enemy_x - 1][enemy_y] == 1
     ):  # esquerda
-        if enemy_name == "Fygar" and enemy_x - 3 >= 0:
-            enemy_x -= 3
+        if enemy_name == "Fygar":
+            if enemy_x - 3 >= 0:
+                enemy_x -= 3
+            else:
+                enemy_y -= 2
         else:
             enemy_x += 3
     else:
@@ -794,11 +839,11 @@ def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
         if abs(enemy_x - digdug_x) <= 5 and abs(enemy_y - digdug_y) <= 5:
             if enemy_x < digdug_x:
                 countL += 1
-            elif enemy_x > digdug_x:
+            if enemy_x > digdug_x:
                 countR += 1
-            elif enemy_y < digdug_y:
+            if enemy_y < digdug_y:
                 countT += 1
-            elif enemy_y > digdug_y:
+            if enemy_y > digdug_y:
                 countB += 1
 
     return (countR, countL, countT, countB)
