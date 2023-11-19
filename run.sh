@@ -4,6 +4,6 @@
 rm -f ./coisas/scores.txt
 
 while true; do
-    python3 student2.py
+    python3 student.py
     python3 ./coisas/media.py
 done

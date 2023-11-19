@@ -13,7 +13,7 @@ class Node:
 
 
 def calculate_cost(maze, position):
-    return 1 if maze[position[0]][position[1]] == 1 else 0
+    return 2 if maze[position[0]][position[1]] == 1 else 0
 
 
 def astar(maze, start, end):

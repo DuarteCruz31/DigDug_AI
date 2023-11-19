@@ -372,10 +372,26 @@ def avoid_enemies(
         count_rocks[3] + count_enemies[3],
     ]
 
-    fire_right = in_the_fire(state, digdug_x + 1, digdug_y)
-    fire_left = in_the_fire(state, digdug_x - 1, digdug_y)
-    fire_up = in_the_fire(state, digdug_x, digdug_y - 1)
-    fire_down = in_the_fire(state, digdug_x, digdug_y + 1)
+    fire_right = (
+        in_the_fire(state, digdug_x + 1, digdug_y)
+        and in_the_fire(state, digdug_x + 2, digdug_y)
+        and in_the_fire(state, digdug_x + 3, digdug_y)
+    )
+    fire_left = (
+        in_the_fire(state, digdug_x - 1, digdug_y)
+        and in_the_fire(state, digdug_x - 2, digdug_y)
+        and in_the_fire(state, digdug_x - 3, digdug_y)
+    )
+    fire_up = (
+        in_the_fire(state, digdug_x, digdug_y - 1)
+        and in_the_fire(state, digdug_x, digdug_y - 2)
+        and in_the_fire(state, digdug_x, digdug_y - 3)
+    )
+    fire_down = (
+        in_the_fire(state, digdug_x, digdug_y + 1)
+        and in_the_fire(state, digdug_x, digdug_y + 2)
+        and in_the_fire(state, digdug_x, digdug_y + 3)
+    )
 
     enemies_coord = []
     for enemy in enemies:
