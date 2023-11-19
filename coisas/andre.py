@@ -728,7 +728,7 @@ def algoritmo_search(state, enemy, mapa):
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
 
-    return astar(mapa, (digdug_x, digdug_y), (enemy_x, enemy_y))
+    return astar(mapa, (digdug_x, digdug_y), (enemy_x, enemy_y), state)
 
 
 def count_enemies_in_each_side(digdug_x, digdug_y, enemies):
