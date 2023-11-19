@@ -69,7 +69,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         continue
 
                 acao = algoritmo_search(state, nearest_enemy, mapa)
-                #print(acao)
+                # print(acao)
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
@@ -530,14 +530,14 @@ def check_other_enimies_while_shooting(
                         and enemy_y - 3 >= 0
                         and all(mapa[digdug_x][enemy_y - i] == 0 for i in range(1, 4))
                     ):
-                        return False
+                        return True
                 else:
                     if (
                         digdug_y - enemy_y <= shooting_distance
                         and enemy_y + 3 <= linhas - 1
                         and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
                     ):
-                        return False
+                        return True
             elif enemy_y == digdug_y:
                 if (
                     enemy_x > digdug_x
@@ -545,15 +545,15 @@ def check_other_enimies_while_shooting(
                     and all(mapa[enemy_x - i][digdug_y] == 0 for i in range(1, 4))
                 ):
                     if enemy_x - digdug_x <= shooting_distance:
-                        return False
+                        return True
                 else:
                     if (
                         digdug_x - enemy_x <= shooting_distance
                         and enemy_x + 3 <= colunas - 1
                         and all(mapa[enemy_x + i][digdug_y] == 0 for i in range(1, 4))
                     ):
-                        return False
-    return True
+                        return True
+    return False
 
 
 def enemies_not_in_the_same_position(nearest_enemy, enemies):
@@ -598,50 +598,9 @@ def can_shoot(mapa, last_move, nearest_enemy, enemies, digdug_x, digdug_y):
     # print(last_move)
     shooting_distance = 3
     enemy_x, enemy_y = enemies[nearest_enemy]["pos"]
-    if enemies_not_in_the_same_position(nearest_enemy, enemies) and not sandwiched(
-        nearest_enemy, digdug_x, digdug_y, enemies
-    ):
-        if (
-            last_move == "d"
-        ):  # ultima jogada foi para a direita e o inimigo esta a direita
-            if (
-                enemy_x > digdug_x
-                and enemy_y == digdug_y
-                and enemy_x - digdug_x <= shooting_distance
-                and enemy_x - 3 >= 0
-                and all(mapa[enemy_x - i][enemy_y] == 0 for i in range(1, 4))
-            ):
-                return True
-        elif (
-            last_move == "a"
-        ):  # ultima jogada foi para a esquerda e o inimigo esta a esquerda
-            if (
-                enemy_x < digdug_x
-                and enemy_y == digdug_y
-                and digdug_x - enemy_x <= shooting_distance
-                and enemy_x + 3 <= colunas - 1
-                and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
-            ):
-                return True
-        elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
-            if (
-                enemy_y < digdug_y
-                and enemy_x == digdug_x
-                and digdug_y - enemy_y <= shooting_distance
-                and enemy_y + 3 <= linhas - 1
-                and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
-            ):
-                return True
-        elif last_move == "s":  # ultima jogada foi para baixo e o inimigo esta abaixo
-            if (
-                enemy_y > digdug_y
-                and enemy_x == digdug_x
-                and enemy_y - digdug_y <= shooting_distance
-                and enemy_y - 3 >= 0
-            ):
-                return True
-        elif last_move == "A":  # ultima jogada foi para atirar
-            if check_other_enimies_while_shooting(
+    if enemies_not_in_the_same_position(nearest_enemy, enemies):
+        if last_move == "A":  # ultima jogada foi para atirar
+            if not check_other_enimies_while_shooting(
                 mapa, nearest_enemy, enemies, digdug_x, digdug_y
             ):
                 if (
@@ -676,6 +635,50 @@ def can_shoot(mapa, last_move, nearest_enemy, enemies, digdug_x, digdug_y):
                     and all(mapa[enemy_x][enemy_y - i] == 0 for i in range(1, 4))
                 ):
                     return True
+
+        elif not sandwiched(nearest_enemy, digdug_x, digdug_y, enemies):
+            if (
+                last_move == "d"
+            ):  # ultima jogada foi para a direita e o inimigo esta a direita
+                if (
+                    enemy_x > digdug_x
+                    and enemy_y == digdug_y
+                    and enemy_x - digdug_x <= shooting_distance
+                    and enemy_x - 3 >= 0
+                    and all(mapa[enemy_x - i][enemy_y] == 0 for i in range(1, 4))
+                ):
+                    return True
+            elif (
+                last_move == "a"
+            ):  # ultima jogada foi para a esquerda e o inimigo esta a esquerda
+                if (
+                    enemy_x < digdug_x
+                    and enemy_y == digdug_y
+                    and digdug_x - enemy_x <= shooting_distance
+                    and enemy_x + 3 <= colunas - 1
+                    and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
+                ):
+                    return True
+            elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
+                if (
+                    enemy_y < digdug_y
+                    and enemy_x == digdug_x
+                    and digdug_y - enemy_y <= shooting_distance
+                    and enemy_y + 3 <= linhas - 1
+                    and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
+                ):
+                    return True
+            elif (
+                last_move == "s"
+            ):  # ultima jogada foi para baixo e o inimigo esta abaixo
+                if (
+                    enemy_y > digdug_y
+                    and enemy_x == digdug_x
+                    and enemy_y - digdug_y <= shooting_distance
+                    and enemy_y - 3 >= 0
+                ):
+                    return True
+
     return False
 
 
