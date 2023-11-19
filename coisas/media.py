@@ -1,5 +1,5 @@
 # abrir fichero txt
-f = open("./coisas/scores.txt", "r")
+f = open("scores.txt", "r")
 # calcular media de pontos
 total = 0
 count = 0
