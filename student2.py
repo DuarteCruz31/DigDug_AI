@@ -4,7 +4,7 @@ import json
 import os
 import websockets
 import math
-from search2 import *
+from search3 import *
 
 mapa = None
 linhas = 24
@@ -38,15 +38,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
 
                 acao = algoritmo_search(state, nearest_enemy, mapa, last_move)
-
-                """ acao = astar(
-                    mapa,
-                    (digdug_x, digdug_y),
-                    (enemy_x, enemy_y),
-                    state,
-                    nearest_enemy,
-                    last_move,
-                ) """
 
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1]
