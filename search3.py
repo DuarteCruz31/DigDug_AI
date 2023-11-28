@@ -4,10 +4,11 @@ linhas = 24
 colunas = 48
 
 POINTS_ROCKS = 1000
-POINTS_FYGAR = 300
+POINTS_FYGAR = 1000
 POINTS_WALL = 10
 POINTS_POOKA = 300
 POINTS_GHOST = 1000
+POINTS_AVOID = 500
 
 
 def calc_distance(position, end):
@@ -17,13 +18,17 @@ def calc_distance(position, end):
 def calculate_cost_normal(maze, position, state, nearest_enemy):
     total = 0
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    cant_be_there = [
+    """ cant_be_there = [
         (enemy_x, enemy_y),
         (enemy_x, enemy_y + 1),
         (enemy_x + 1, enemy_y),
         (enemy_x - 1, enemy_y),
         (enemy_x, enemy_y - 1),
-    ]
+        (enemy_x + 1, enemy_y + 1),
+        (enemy_x - 1, enemy_y + 1),
+        (enemy_x + 1, enemy_y - 1),
+        (enemy_x - 1, enemy_y - 1),
+    ] """
 
     if maze[position[0]][position[1]] == 1:
         total += POINTS_WALL
@@ -31,10 +36,9 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
     if (
         "traverse" in state["enemies"][nearest_enemy]
         and state["enemies"][nearest_enemy]["traverse"] == True
-        and calc_distance(state["digdug"], state["enemies"][nearest_enemy]["pos"]) <= 5
+        and calc_distance(position, state["enemies"][nearest_enemy]["pos"]) <= 5
     ):
-        if position in cant_be_there:
-            total += POINTS_GHOST
+        total += POINTS_GHOST
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -98,13 +102,13 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
     total = 0
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    cant_be_there = [
+    """ cant_be_there = [
         (enemy_x, enemy_y),
         (enemy_x, enemy_y + 1),
         (enemy_x + 1, enemy_y),
         (enemy_x - 1, enemy_y),
         (enemy_x, enemy_y - 1),
-    ]
+    ] """
 
     if maze[position[0]][position[1]] == 1:
         total += POINTS_WALL
@@ -112,10 +116,9 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
     if (
         "traverse" in state["enemies"][nearest_enemy]
         and state["enemies"][nearest_enemy]["traverse"] == True
-        and calc_distance(state["digdug"], state["enemies"][nearest_enemy]["pos"]) <= 5
+        and calc_distance(position, state["enemies"][nearest_enemy]["pos"]) <= 5
     ):
-        if position in cant_be_there:
-            total += POINTS_GHOST
+        total += POINTS_GHOST
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -168,7 +171,7 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
             abs(position[0] - enemy_x) ** 2 + abs(position[1] - enemy_y) ** 2
         )
 
-        penalty = 300 / (distance_to_enemy + 1)
+        penalty = POINTS_AVOID / (distance_to_enemy + 1)
 
         total += penalty
 
@@ -184,10 +187,6 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
             total += POINTS_POOKA
 
     return total
-
-
-""" def calc_distance(position, end):
-    return (((position[0] - end[0]) ** 2) + ((position[1] - end[1]) ** 2)) ** 0.5 """
 
 
 def enemies_not_in_the_same_position(state, nearest_enemy):
@@ -364,7 +363,10 @@ def can_shoot(state, mapa, last_move, nearest_enemy):
     return False
 
 
-def euclidean_distance(a, b):
+def heuristic(a, b):
+    # distancia euclidiana, faz com nao ande na diagonal
+    # disancia de manhattan, faz com que ande na diagonal
+    # distancia de chebyshev ou o caralhs, faz com que ande na diagonal
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
 
 
@@ -410,7 +412,7 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                     cost_so_far[neighbor] = new_cost
                     came_from[neighbor] = current_node
-                    total_cost = new_cost + euclidean_distance(neighbor, goal)
+                    total_cost = new_cost + heuristic(neighbor, goal)
                     heapq.heappush(priority_queue, (total_cost, neighbor))
 
     return None
