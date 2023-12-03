@@ -5,10 +5,10 @@ colunas = 48
 
 POINTS_ROCKS = 1000
 POINTS_FYGAR = 1000
-POINTS_WALL = 10
-POINTS_POOKA = 300
+POINTS_WALL = 5
+POINTS_POOKA = 1000
 POINTS_GHOST = 1000
-POINTS_AVOID = 500
+POINTS_AVOID = 1000
 
 
 def calc_distance(position, end):
@@ -17,42 +17,34 @@ def calc_distance(position, end):
 
 def calculate_cost_normal(maze, position, state, nearest_enemy):
     total = 0
-    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    """ cant_be_there = [
-        (enemy_x, enemy_y),
-        (enemy_x, enemy_y + 1),
-        (enemy_x + 1, enemy_y),
-        (enemy_x - 1, enemy_y),
-        (enemy_x, enemy_y - 1),
-        (enemy_x + 1, enemy_y + 1),
-        (enemy_x - 1, enemy_y + 1),
-        (enemy_x + 1, enemy_y - 1),
-        (enemy_x - 1, enemy_y - 1),
-    ] """
 
     if maze[position[0]][position[1]] == 1:
         total += POINTS_WALL
 
-    if (
-        "traverse" in state["enemies"][nearest_enemy]
-        and state["enemies"][nearest_enemy]["traverse"] == True
-        and calc_distance(position, state["enemies"][nearest_enemy]["pos"]) <= 5
-    ):
-        total += POINTS_GHOST
-
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
-        if rock_x == position[0] and rock_y == position[1]:
+        if (rock_x == position[0] and rock_y == position[1]) or (
+            rock_x == position[0] and rock_y + 1 == position[1]
+        ):
             total += POINTS_ROCKS
 
     for enemy in state["enemies"]:
         enemy_name = enemy["name"]
         enemy_x, enemy_y = enemy["pos"]
+
+        if (
+            "traverse" in enemy
+            and enemy["traverse"] == True
+            and calc_distance(position, enemy["pos"]) <= 5
+        ):
+            total += POINTS_GHOST
+
         if enemy_name == "Fygar":
             enemy_dir = enemy["dir"]
             if enemy_y == position[1]:
-                if enemy_dir == 1 and enemy_x + 4 <= 48 and enemy_x - 4 >= 0:
-                    if maze[enemy_x + 1][enemy_y] == 1 and (
+                # Vai bater com a cabeça na parede
+                if enemy_x + 1 <= 47 and maze[enemy_x + 1][enemy_y] == 1:
+                    if (
                         enemy_x == position[0]
                         or enemy_x - 1 == position[0]
                         or enemy_x - 2 == position[0]
@@ -60,7 +52,8 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
                         or enemy_x - 4 == position[0]
                     ):
                         total += POINTS_FYGAR
-                    elif (
+                elif enemy_x - 1 >= 0 and maze[enemy_x - 1][enemy_y] == 1:
+                    if (
                         enemy_x == position[0]
                         or enemy_x + 1 == position[0]
                         or enemy_x + 2 == position[0]
@@ -68,29 +61,37 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
                         or enemy_x + 4 == position[0]
                     ):
                         total += POINTS_FYGAR
-                elif enemy_dir == 3 and enemy_x - 4 >= 0 and enemy_x + 4 <= 48:
-                    if maze[enemy_x - 1][enemy_y] == 1 and (
-                        enemy_x == position[0]
-                        or enemy_x + 1 == position[0]
-                        or enemy_x + 2 == position[0]
-                        or enemy_x + 3 == position[0]
-                        or enemy_x + 4 == position[0]
-                    ):
-                        total += POINTS_FYGAR
-                    elif (
-                        enemy_x == position[0]
-                        or enemy_x - 1 == position[0]
-                        or enemy_x - 2 == position[0]
-                        or enemy_x - 3 == position[0]
-                        or enemy_x - 4 == position[0]
-                    ):
-                        total += POINTS_FYGAR
+                else:
+                    # Normal
+                    if enemy_dir == 1:
+                        if (
+                            enemy_x == position[0]
+                            or enemy_x + 1 == position[0]
+                            or enemy_x + 2 == position[0]
+                            or enemy_x + 3 == position[0]
+                            or enemy_x + 4 == position[0]
+                        ):
+                            total += POINTS_FYGAR
+                    elif enemy_dir == 3:
+                        if (
+                            enemy_x == position[0]
+                            or enemy_x - 1 == position[0]
+                            or enemy_x - 2 == position[0]
+                            or enemy_x - 3 == position[0]
+                            or enemy_x - 4 == position[0]
+                        ):
+                            total += POINTS_FYGAR
+
         cant_be_there = [
             (enemy_x, enemy_y),
             (enemy_x, enemy_y + 1),
             (enemy_x + 1, enemy_y),
             (enemy_x - 1, enemy_y),
             (enemy_x, enemy_y - 1),
+            (enemy_x + 1, enemy_y + 1),
+            (enemy_x - 1, enemy_y + 1),
+            (enemy_x + 1, enemy_y - 1),
+            (enemy_x - 1, enemy_y - 1),
         ]
 
         if position in cant_be_there:
@@ -101,39 +102,31 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 
 def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
     total = 0
-    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    """ cant_be_there = [
-        (enemy_x, enemy_y),
-        (enemy_x, enemy_y + 1),
-        (enemy_x + 1, enemy_y),
-        (enemy_x - 1, enemy_y),
-        (enemy_x, enemy_y - 1),
-    ] """
-
-    if maze[position[0]][position[1]] == 1:
-        total += POINTS_WALL
-
-    if (
-        "traverse" in state["enemies"][nearest_enemy]
-        and state["enemies"][nearest_enemy]["traverse"] == True
-        and calc_distance(position, state["enemies"][nearest_enemy]["pos"]) <= 5
-    ):
-        total += POINTS_GHOST
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
-        if rock_x == position[0] and rock_y == position[1]:
+        if (rock_x == position[0] and rock_y == position[1]) or (
+            rock_x == position[0] and rock_y + 1 == position[1]
+        ):
             total += POINTS_ROCKS
 
     for enemy in state["enemies"]:
         enemy_name = enemy["name"]
         enemy_x, enemy_y = enemy["pos"]
-        enemy_dir = enemy["dir"]
+
+        if (
+            "traverse" in enemy
+            and enemy["traverse"] == True
+            and calc_distance(position, enemy["pos"]) <= 5
+        ):
+            total += POINTS_GHOST
 
         if enemy_name == "Fygar":
+            enemy_dir = enemy["dir"]
             if enemy_y == position[1]:
-                if enemy_dir == 1 and enemy_x + 4 <= 48 and enemy_x - 4 >= 0:
-                    if maze[enemy_x + 1][enemy_y] == 1 and (
+                # Vai bater com a cabeça na parede
+                if enemy_x + 1 <= 47 and maze[enemy_x + 1][enemy_y] == 1:
+                    if (
                         enemy_x == position[0]
                         or enemy_x - 1 == position[0]
                         or enemy_x - 2 == position[0]
@@ -141,7 +134,8 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
                         or enemy_x - 4 == position[0]
                     ):
                         total += POINTS_FYGAR
-                    elif (
+                elif enemy_x - 1 >= 0 and maze[enemy_x - 1][enemy_y] == 1:
+                    if (
                         enemy_x == position[0]
                         or enemy_x + 1 == position[0]
                         or enemy_x + 2 == position[0]
@@ -149,24 +143,26 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
                         or enemy_x + 4 == position[0]
                     ):
                         total += POINTS_FYGAR
-                elif enemy_dir == 3 and enemy_x - 4 >= 0 and enemy_x + 4 <= 48:
-                    if maze[enemy_x - 1][enemy_y] == 1 and (
-                        enemy_x == position[0]
-                        or enemy_x + 1 == position[0]
-                        or enemy_x + 2 == position[0]
-                        or enemy_x + 3 == position[0]
-                        or enemy_x + 4 == position[0]
-                    ):
-                        total += POINTS_FYGAR
-                    elif (
-                        enemy_x == position[0]
-                        or enemy_x - 1 == position[0]
-                        or enemy_x - 2 == position[0]
-                        or enemy_x - 3 == position[0]
-                        or enemy_x - 4 == position[0]
-                    ):
-                        total += POINTS_FYGAR
-
+                else:
+                    # Normal
+                    if enemy_dir == 1:
+                        if (
+                            enemy_x == position[0]
+                            or enemy_x + 1 == position[0]
+                            or enemy_x + 2 == position[0]
+                            or enemy_x + 3 == position[0]
+                            or enemy_x + 4 == position[0]
+                        ):
+                            total += POINTS_FYGAR
+                    elif enemy_dir == 3:
+                        if (
+                            enemy_x == position[0]
+                            or enemy_x - 1 == position[0]
+                            or enemy_x - 2 == position[0]
+                            or enemy_x - 3 == position[0]
+                            or enemy_x - 4 == position[0]
+                        ):
+                            total += POINTS_FYGAR
         distance_to_enemy = (
             abs(position[0] - enemy_x) ** 2 + abs(position[1] - enemy_y) ** 2
         )
@@ -181,8 +177,11 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
             (enemy_x + 1, enemy_y),
             (enemy_x - 1, enemy_y),
             (enemy_x, enemy_y - 1),
+            (enemy_x + 1, enemy_y + 1),
+            (enemy_x - 1, enemy_y + 1),
+            (enemy_x + 1, enemy_y - 1),
+            (enemy_x - 1, enemy_y - 1),
         ]
-
         if position in cant_be_there:
             total += POINTS_POOKA
 
@@ -230,7 +229,7 @@ def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
     enemies = state["enemies"]
     digdug_x, digdug_y = state["digdug"]
-    shooting_distance = 2
+    shooting_distance = 3
 
     for enemy in enemies:
         if enemy != state["enemies"][nearest_enemy]:
@@ -367,7 +366,8 @@ def heuristic(a, b):
     # distancia euclidiana, faz com nao ande na diagonal
     # disancia de manhattan, faz com que ande na diagonal
     # distancia de chebyshev ou o caralhs, faz com que ande na diagonal
-    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+    # return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
 def astar(maze, start, goal, state, nearest_enemy, last_move):
@@ -377,8 +377,8 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
 
     if last_move is not None and can_shoot(state, maze, last_move, nearest_enemy):
         return "A"
-    elif (abs(digdug_x - enemy_x) < 3 and digdug_y == enemy_y) or (
-        abs(digdug_y - enemy_y) < 3 and digdug_x == enemy_x
+    elif (abs(digdug_x - enemy_x) <= 3 and digdug_y == enemy_y) or (
+        abs(digdug_y - enemy_y) <= 3 and digdug_x == enemy_x
     ):
         avoid = True
 

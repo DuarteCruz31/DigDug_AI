@@ -66,11 +66,11 @@ class Rope:
 
         if new_pos in self._pos:  # we hit a wall
             return self.__reset_rope()
-        
+
         for e in _enemies:  # rope caught fire
-            if isinstance(e,Fygar) and e.fire and any(p in self._pos for p in e.fire):
+            if isinstance(e, Fygar) and e.fire and any(p in self._pos for p in e.fire):
                 return self.__reset_rope()
-            
+
         self._pos.append(new_pos)
 
         self._dir = direction
@@ -183,7 +183,10 @@ class Game:
                 # Parse action
                 if self._lastkeypress in "AB":
                     self._rope.shoot(
-                        self._digdug.pos, self._digdug.direction, self._rocks, self._enemies
+                        self._digdug.pos,
+                        self._digdug.direction,
+                        self._rocks,
+                        self._enemies,
                     )
                     if self._rope.hit(self._enemies):
                         logger.debug(

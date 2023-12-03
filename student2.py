@@ -15,6 +15,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
+        i = True
         while True:
             try:
                 state = json.loads(await websocket.recv())
@@ -26,6 +27,12 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 if "enemies" not in state or len(state["enemies"]) == 0:
                     continue
+
+                if i:
+                    for rock in state["rocks"]:
+                        rock_x, rock_y = rock["pos"]
+                        mapa[rock_x][rock_y] = 1
+                    i = False
 
                 digdug_x, digdug_y = state["digdug"]
 
@@ -49,6 +56,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     continue
                 elif acao != None and len(acao) == 1 and acao == "A":
                     await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
+                    continue
+                elif acao != None and len(acao) == 1:
+                    print("no move")
+                    await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
                     continue
 
             except websockets.exceptions.ConnectionClosedOK:
@@ -88,8 +99,6 @@ def algoritmo_search(state, enemy, mapa, last_move):
     digdug_x, digdug_y = state["digdug"]
     enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
-
-    # ver se inimigo tem uma parede a frente
 
     if (
         enemy_dir == 0
