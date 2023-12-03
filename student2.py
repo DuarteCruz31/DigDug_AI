@@ -59,7 +59,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     continue
                 elif acao != None and len(acao) == 1:
                     print("no move")
-                    await websocket.send(json.dumps({"cmd": "key", "key": "w"}))
+                    await websocket.send(json.dumps({"cmd": "key", "key": " "}))
                     continue
 
             except websockets.exceptions.ConnectionClosedOK:

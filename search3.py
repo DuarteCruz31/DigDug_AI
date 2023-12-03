@@ -229,7 +229,7 @@ def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
 def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
     enemies = state["enemies"]
     digdug_x, digdug_y = state["digdug"]
-    shooting_distance = 3
+    shooting_distance = 2
 
     for enemy in enemies:
         if enemy != state["enemies"][nearest_enemy]:
