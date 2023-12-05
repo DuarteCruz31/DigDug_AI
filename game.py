@@ -159,7 +159,7 @@ class Game:
         self._enemies = [
             enemy(
                 pos,
-                smart=random.choices(list(Smart), [1, level // 10, level // 20], k=1)[
+                smart=random.choices(list(Smart), [1, level // 7, level // 14], k=1)[
                     0
                 ],
             )
@@ -299,7 +299,15 @@ class Game:
         for enemy in self._enemies:
             if enemy.alive:
                 enemy.move(self.map, self._digdug, self._enemies, self._rocks)
-
+        if self._rope.stretched and self._rope.hit(self._enemies):
+            logger.debug(
+                "[step=%s] Enemy hit with rope(%s) - enemies: %s - digdug: %s",
+                self._step,
+                self._rope.to_dict(),
+                self._enemies,
+                self._digdug,
+            )
+ 
         for rock in self._rocks:
             rock.move(self.map, digdug=self._digdug, rocks=self._rocks)
 
