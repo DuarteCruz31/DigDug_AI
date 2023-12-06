@@ -6,7 +6,6 @@ import websockets
 import math
 from search import *
 
-possible_movimentos = None
 mapa = None
 linhas = 24
 colunas = 48

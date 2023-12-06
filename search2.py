@@ -16,7 +16,7 @@ linhas = 24
 colunas = 48
 
 POINTS_ROCKS = 1000
-POINTS_FYGAR = 300
+POINTS_FYGAR = 700
 POINTS_WALL = 100
 POINTS_POOKA = 300
 POINTS_GHOST = 1000
@@ -180,7 +180,7 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
             abs(position[0] - enemy_x) ** 2 + abs(position[1] - enemy_y) ** 2
         )
 
-        penalty = 300 / (distance_to_enemy + 1)
+        penalty = 500 / (distance_to_enemy + 1)
 
         total += penalty
 
@@ -196,10 +196,6 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
             total += POINTS_POOKA
 
     return total
-
-
-""" def calc_distance(position, end):
-    return (((position[0] - end[0]) ** 2) + ((position[1] - end[1]) ** 2)) ** 0.5 """
 
 
 def enemies_not_in_the_same_position(state, nearest_enemy):
@@ -451,8 +447,8 @@ def astar(maze, start, end, state, nearest_enemy, last_move):
                     maze, child.position, state, nearest_enemy
                 )
 
-            child.h = (child.position[0] - end_node.position[0]) ** 2 + (
-                (child.position[1] - end_node.position[1]) ** 2
+            child.h = abs(child.position[0] - end_node.position[0]) + (
+                abs(child.position[1] - end_node.position[1])
             )
 
             child.f = child.g + child.h

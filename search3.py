@@ -3,12 +3,12 @@ import heapq
 linhas = 24
 colunas = 48
 
-POINTS_ROCKS = 1000
-POINTS_FYGAR = 1000
+POINTS_ROCKS = 10000
+POINTS_FYGAR = 10000
 POINTS_WALL = 5
-POINTS_POOKA = 1000
-POINTS_GHOST = 1000
-POINTS_AVOID = 1000
+POINTS_POOKA = 10000
+POINTS_GHOST = 10000
+POINTS_AVOID = 10000
 
 
 def calc_distance(position, end):
@@ -88,10 +88,6 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
             (enemy_x + 1, enemy_y),
             (enemy_x - 1, enemy_y),
             (enemy_x, enemy_y - 1),
-            (enemy_x + 1, enemy_y + 1),
-            (enemy_x - 1, enemy_y + 1),
-            (enemy_x + 1, enemy_y - 1),
-            (enemy_x - 1, enemy_y - 1),
         ]
 
         if position in cant_be_there:
@@ -163,9 +159,7 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
                             or enemy_x - 4 == position[0]
                         ):
                             total += POINTS_FYGAR
-        distance_to_enemy = (
-            abs(position[0] - enemy_x) ** 2 + abs(position[1] - enemy_y) ** 2
-        )
+        distance_to_enemy = abs(position[0] - enemy_x) + abs(position[1] - enemy_y)
 
         penalty = POINTS_AVOID / (distance_to_enemy + 1)
 
@@ -177,10 +171,6 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
             (enemy_x + 1, enemy_y),
             (enemy_x - 1, enemy_y),
             (enemy_x, enemy_y - 1),
-            (enemy_x + 1, enemy_y + 1),
-            (enemy_x - 1, enemy_y + 1),
-            (enemy_x + 1, enemy_y - 1),
-            (enemy_x - 1, enemy_y - 1),
         ]
         if position in cant_be_there:
             total += POINTS_POOKA
@@ -267,10 +257,9 @@ def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
     return True
 
 
-def can_shoot(state, mapa, last_move, nearest_enemy):
+def can_shoot(state, mapa, last_move, nearest_enemy, digdug_x, digdug_y):
     # print(last_move)
     shooting_distance = 3
-    digdug_x, digdug_y = state["digdug"]
     enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
     if last_move == "d":  # ultima jogada foi para a direita e o inimigo esta a direita
         if (
@@ -373,12 +362,15 @@ def heuristic(a, b):
 def astar(maze, start, goal, state, nearest_enemy, last_move):
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
+    real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
     avoid = False
 
-    if last_move is not None and can_shoot(state, maze, last_move, nearest_enemy):
+    if last_move is not None and can_shoot(
+        state, maze, last_move, nearest_enemy, digdug_x, digdug_y
+    ):
         return "A"
-    elif (abs(digdug_x - enemy_x) <= 3 and digdug_y == enemy_y) or (
-        abs(digdug_y - enemy_y) <= 3 and digdug_x == enemy_x
+    elif (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y) or (
+        abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x
     ):
         avoid = True
 

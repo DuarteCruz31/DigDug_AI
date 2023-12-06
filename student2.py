@@ -55,12 +55,40 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     await websocket.send(json.dumps({"cmd": "key", "key": move}))
                     continue
                 elif acao != None and len(acao) == 1 and acao == "A":
+                    last_move = "A"
                     await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                     continue
-                elif acao != None and len(acao) == 1:
-                    print("no move")
-                    await websocket.send(json.dumps({"cmd": "key", "key": " "}))
-                    continue
+                else:
+                    copia_mapa = mapa.copy()
+                    # No movement found, try to shoot
+                    if enemy_y == digdug_y:
+                        if enemy_x < digdug_x and enemy_x != digdug_x - 1:
+                            copia_mapa[digdug_x - 1][digdug_y] = 0
+                            direction = "a"
+                        elif enemy_x > digdug_x and enemy_x != digdug_x + 1:
+                            copia_mapa[digdug_x + 1][digdug_y] = 0
+                            direction = "d"
+                    elif enemy_x == digdug_x:
+                        if enemy_y < digdug_y and enemy_y != digdug_y - 1:
+                            copia_mapa[digdug_x][digdug_y - 1] = 0
+                            direction = "w"
+                        elif enemy_y > digdug_y and enemy_y != digdug_y + 1:
+                            copia_mapa[digdug_x][digdug_y + 1] = 0
+                            direction = "s"
+                    else:
+                        print("No movement or shoot found")
+
+                    if can_shoot(
+                        state, copia_mapa, direction, nearest_enemy, digdug_x, digdug_y
+                    ):
+                        print(direction)
+                        await websocket.send(
+                            json.dumps({"cmd": "key", "key": direction})
+                        )
+                        last_move = direction
+                    else:
+                        copia_mapa[digdug_x][digdug_y] = 1
+                        print("No movement or shoot found")
 
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
