@@ -1,4 +1,5 @@
 import heapq
+from student import avoid_enemies
 
 linhas = 24
 colunas = 48
@@ -369,15 +370,21 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
         state, maze, last_move, nearest_enemy, digdug_x, digdug_y
     ):
         return "A"
-    elif (
-        (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
-        or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
-        and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
-        == False
+    elif (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y) or (
+        abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x
     ):
-        # print("hey")
-        avoid = True
-        # goal = (0, 0)
+        print("FLEE")
+        rocks = state["rocks"]
+        return should_flee(
+            state,
+            maze,
+            last_move,
+            digdug_x,
+            digdug_y,
+            real_enemy_x,
+            real_enemy_y,
+            rocks,
+        )
 
     priority_queue = [(0, start)]
     visited = set()
@@ -400,10 +407,8 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
             nx_, ny_ = current_node[0] + dx, current_node[1] + dy
             if 0 <= nx_ < len(maze) and 0 <= ny_ < len(maze[0]):
                 neighbor = (nx_, ny_)
-                new_cost = cost_so_far[current_node] + (
-                    calculate_cost_avoid_enemies(maze, neighbor, state, nearest_enemy)
-                    if avoid
-                    else calculate_cost_normal(maze, neighbor, state, nearest_enemy)
+                new_cost = cost_so_far[current_node] + calculate_cost_normal(
+                    maze, neighbor, state, nearest_enemy
                 )
 
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
@@ -422,3 +427,19 @@ def reconstruct_path(start, goal, came_from):
         current = came_from[current]
         path.append(current)
     return path[::-1]
+
+
+def should_flee(
+    state, mapa, last_move, digdug_x, digdug_y, nearest_enemy_x, nearest_enemy_y, rocks
+):
+    move = avoid_enemies(
+        state,
+        digdug_x,
+        digdug_y,
+        nearest_enemy_x,
+        nearest_enemy_y,
+        state["enemies"],
+        rocks,
+    )
+
+    return move

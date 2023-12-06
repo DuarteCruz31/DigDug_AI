@@ -58,6 +58,11 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     last_move = "A"
                     await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
                     continue
+                elif acao != None and len(acao) == 1 and len(acao[0]) == 1:
+                    last_move = acao[0]
+                    print(acao[0])
+                    await websocket.send(json.dumps({"cmd": "key", "key": acao[0]}))
+                    continue
                 elif acao != None and len(acao) == 1:
                     copia_mapa = mapa.copy()
                     # No movement found, try to shoot
@@ -76,8 +81,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             copia_mapa[digdug_x][digdug_y + 1] = 0
                             direction = "s"
                     else:
-                        # print("No movement or shoot found")
-                        pass
+                        print("No movement or shoot found")
 
                     if can_shoot(
                         state, copia_mapa, direction, nearest_enemy, digdug_x, digdug_y
@@ -89,7 +93,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         last_move = direction
                     else:
                         copia_mapa[digdug_x][digdug_y] = 1
-                        # print("No movement or shoot found")
+                        print("No movement or shoot found")
 
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")

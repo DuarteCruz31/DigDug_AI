@@ -159,9 +159,7 @@ class Game:
         self._enemies = [
             enemy(
                 pos,
-                smart=random.choices(list(Smart), [1, level // 7, level // 14], k=1)[
-                    0
-                ],
+                smart=random.choices(list(Smart), [1, level // 7, level // 14], k=1)[0],
             )
             for enemy, pos in zip(level_enemies(level), self.map.enemies_spawn)
         ]
@@ -307,7 +305,7 @@ class Game:
                 self._enemies,
                 self._digdug,
             )
- 
+
         for rock in self._rocks:
             rock.move(self.map, digdug=self._digdug, rocks=self._rocks)
 
