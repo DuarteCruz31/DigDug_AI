@@ -96,6 +96,8 @@ def algoritmo_search(state, enemy, mapa, last_move):
     enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
 
+    level = int(state["level"])
+
     if (
         enemy_dir == 0
         and enemy_y + 3 <= linhas - 1
@@ -133,6 +135,12 @@ def algoritmo_search(state, enemy, mapa, last_move):
             enemy_y -= 2
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
+
+    if level >= 7:
+        if enemy_name == "Fygar":
+            enemy_x, enemy_y = state["enemies"][enemy]["pos"]
+            goal_y = enemy_y - 1
+            enemy_x, enemy_y = enemy_x, goal_y
 
     return astar(
         mapa, (digdug_x, digdug_y), (enemy_x, enemy_y), state, enemy, last_move
