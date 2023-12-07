@@ -20,6 +20,8 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 
     if maze[position[0]][position[1]] == 1:
         total += POINTS_WALL
+    else:
+        total += 1
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -98,6 +100,9 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 
 def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
     total = 0
+
+    if maze[position[0]][position[1]] == 0:
+        total += 1
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -377,7 +382,10 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
     ):
         # print("hey")
         avoid = True
-        # goal = (0, 0)
+        if start == (0, 0):
+            goal == (enemy_x, enemy_y)
+        else:
+            goal = (0, 0)
 
     priority_queue = [(0, start)]
     visited = set()
@@ -394,6 +402,35 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
 
         if current_node == goal:
             path = reconstruct_path(start, goal, came_from)
+            if avoid:
+                return path
+
+            # Ver o ultimo move
+            last_node = path[-2]
+            dx, dy = current_node[0] - last_node[0], current_node[1] - last_node[1]
+
+            if (
+                (dx == 1 and real_enemy_x > digdug_x)
+                or (dx == -1 and real_enemy_x < digdug_x)
+                or (dy == 1 and real_enemy_y > digdug_y)
+                or (dy == -1 and real_enemy_y < digdug_y)
+            ):
+                return path
+
+            # Se o último movimento não estiver na direção do inimigo, remove o último nó e adicione um novo ja bem
+            new_goal = None
+            if real_enemy_x > digdug_x:
+                new_goal = (current_node[0] + 1, current_node[1])
+            elif real_enemy_x < digdug_x:
+                new_goal = (current_node[0] - 1, current_node[1])
+            elif real_enemy_y > digdug_y:
+                new_goal = (current_node[0], current_node[1] + 1)
+            elif real_enemy_y < digdug_y:
+                new_goal = (current_node[0], current_node[1] - 1)
+
+            if new_goal is not None:
+                path[-1] = new_goal
+
             return path
 
         for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
