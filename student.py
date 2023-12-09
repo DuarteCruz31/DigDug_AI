@@ -46,7 +46,11 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 acao = algoritmo_search(state, nearest_enemy, mapa, last_move)
 
-                if acao != None and len(acao) > 1:
+                if acao != None and len(acao) == 2 and acao[1] == acao[0]:
+                    last_move = "A"
+                    await websocket.send(json.dumps({"cmd": "key", "key": "A"}))
+                    continue
+                elif acao != None and len(acao) > 1:
                     nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
 

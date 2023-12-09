@@ -429,7 +429,6 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
         and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
         == False
     ) or in_the_fire(state, maze, start):
-        # print("hey")
         avoid = True
         if start == (0, 0):
             goal == (enemy_x, enemy_y)
@@ -437,10 +436,18 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
             goal = (0, 0)
 
     if int(state["step"]) > 2000:
-        goal = (47, 23)
+        controlo = True
 
-        if start == goal:
-            return "A"
+        for enemy in state["enemies"]:
+            if enemy["name"] == "Fygar":
+                controlo = False
+                break
+
+        if controlo:
+            goal = (47, 23)
+
+            if start == goal:
+                return "A"
 
     priority_queue = [(0, start)]
     visited = set()
