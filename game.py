@@ -11,7 +11,7 @@ logger = logging.getLogger("Game")
 logger.setLevel(logging.INFO)
 
 INITIAL_SCORE = 0
-GAME_SPEED = 10
+GAME_SPEED = 30
 MAP_SIZE = (48, 24)
 
 
@@ -137,7 +137,7 @@ class Game:
         logger.debug("Reset world")
         self._player_name = player_name
         self._running = True
-        self._total_steps = 0
+        self._total_steps = 1800
         self._score = INITIAL_SCORE
         self._digdug = DigDug(self.map.digdug_spawn, self._initial_lives)
 
