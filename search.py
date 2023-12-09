@@ -493,6 +493,14 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
             nx_, ny_ = current_node[0] + dx, current_node[1] + dy
             if 0 <= nx_ < len(maze) and 0 <= ny_ < len(maze[0]):
                 neighbor = (nx_, ny_)
+
+                if (
+                    state["enemies"][nearest_enemy]["name"] == "Fygar"
+                    and int(state["level"]) >= 7
+                ):
+                    if goal != neighbor and in_the_fire(state, maze, neighbor):
+                        continue
+
                 new_cost = cost_so_far[current_node] + (
                     calculate_cost_avoid_enemies(maze, neighbor, state, nearest_enemy)
                     if avoid
