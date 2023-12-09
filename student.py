@@ -46,8 +46,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 acao = algoritmo_search(state, nearest_enemy, mapa, last_move)
 
-                print(acao)
-
                 if acao != None and len(acao) > 1:
                     nextStepList = acao[1]
                     nextStep = [int(nextStepList[0]), int(nextStepList[1])]
@@ -99,7 +97,6 @@ def algoritmo_search(state, enemy, mapa, last_move):
     enemy_dir = state["enemies"][enemy]["dir"]
 
     level = int(state["level"])
-    steps = int(state["step"])
 
     if (
         enemy_dir == 0

@@ -419,10 +419,8 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
     avoid = False
 
-    if (
-        last_move is not None
-        and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
-        or goal == start
+    if last_move is not None and can_shoot(
+        state, maze, last_move, nearest_enemy, digdug_x, digdug_y
     ):
         return "A"
     elif (
@@ -440,6 +438,9 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
 
     if int(state["step"]) > 2000:
         goal = (47, 23)
+
+        if start == goal:
+            return "A"
 
     priority_queue = [(0, start)]
     visited = set()
