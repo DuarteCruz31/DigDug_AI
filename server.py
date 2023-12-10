@@ -203,9 +203,7 @@ class GameServer:
 
                 # mandar scores para ficheiro
                 f = open("./coisas/scores.txt", "a")
-                f.write(
-                    f"{self.current_player.name} {self.game.score} {self.game.level}\n"
-                )
+                f.write(f"{self.game.score} {self.game.level}\n")
                 f.close()
 
                 await self.send_info(game_info, highscores=True)
