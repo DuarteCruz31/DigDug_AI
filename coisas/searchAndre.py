@@ -435,7 +435,7 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
         else:
             goal = (0, 0)
 
-    if int(state["step"]) > 2000 and int(state["level"]) >= 10:
+    if int(state["step"]) > 2000 and int(state["level"]) >= 8:
         controlo = True
 
         for enemy in state["enemies"]:
@@ -501,12 +501,26 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
             if 0 <= nx_ < len(maze) and 0 <= ny_ < len(maze[0]):
                 neighbor = (nx_, ny_)
 
-                if (
-                    state["enemies"][nearest_enemy]["name"] == "Fygar"
-                    and int(state["level"]) >= 7
-                ):
-                    if goal != neighbor and in_the_fire(state, maze, neighbor):
-                        continue
+                control = False
+                for enemy in state["enemies"]:
+                    if enemy["name"] == "Fygar":
+                        if goal != neighbor and in_the_fire(state, maze, neighbor):
+                            control = True
+                            break
+                    if (
+                        abs(nx_ - enemy["pos"][0]) <= 1
+                        and abs(ny_ - enemy["pos"][1]) <= 1
+                    ):
+                        control = True
+                        break
+
+                for rocks in state["rocks"]:
+                    if rocks["pos"] == neighbor:
+                        control = True
+                        break
+
+                if control == True:
+                    continue
 
                 new_cost = cost_so_far[current_node] + (
                     calculate_cost_avoid_enemies(maze, neighbor, state, nearest_enemy)
