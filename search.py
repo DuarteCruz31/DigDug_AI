@@ -364,9 +364,6 @@ def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-
-
-
 def in_the_fire(state, maze, position):
     for enemy in state["enemies"]:
         enemy_name = enemy["name"]
@@ -415,28 +412,40 @@ def in_the_fire(state, maze, position):
                             return True
     return False
 
-    
-def nearest_is_fygar_bugged(f,id):
+
+def nearest_is_fygar_bugged(f, id):
     if id in f:
         return f[id].has_repeated_values()
     return False
 
-def nearest_is_rock_bugged(maze,enemy,digdug,t):
-    if  (enemy[0] != 47 
-        and enemy [1] != 23
+
+def nearest_is_rock_bugged(maze, enemy, digdug, t):
+    if (
+        enemy[0] != 47
+        and enemy[1] != 23
         and t == False
-        and maze[enemy[0]][enemy[1]+1] >= 0
-        and maze[enemy[0]][enemy[1]-1] >= 0
-        and maze[enemy[0]+1][enemy[1]] >= 0
-        and maze[enemy[0]-1][enemy[1]] >= 0
-        and (maze[enemy[0]][enemy[1]+1] == 1 and maze[enemy[0]][enemy[1]+1] != digdug)  
-        and (maze[enemy[0]][enemy[1]-1] == 1 and maze[enemy[0]][enemy[1]+1] != digdug) 
-        and (maze[enemy[0]+1][enemy[1]] == 1 and maze[enemy[0]][enemy[1]+1] != digdug)
-        and (maze[enemy[0]-1][enemy[1]] == 1 and maze[enemy[0]][enemy[1]+1] != digdug)):
+        and maze[enemy[0]][enemy[1] + 1] >= 0
+        and maze[enemy[0]][enemy[1] - 1] >= 0
+        and maze[enemy[0] + 1][enemy[1]] >= 0
+        and maze[enemy[0] - 1][enemy[1]] >= 0
+        and (
+            maze[enemy[0]][enemy[1] + 1] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
+        )
+        and (
+            maze[enemy[0]][enemy[1] - 1] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
+        )
+        and (
+            maze[enemy[0] + 1][enemy[1]] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
+        )
+        and (
+            maze[enemy[0] - 1][enemy[1]] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
+        )
+    ):
         return True
     return False
-        
-def astar(maze, start, goal, state, nearest_enemy, last_move,fygars):
+
+
+def astar(maze, start, goal, state, nearest_enemy, last_move, fygars):
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -457,24 +466,29 @@ def astar(maze, start, goal, state, nearest_enemy, last_move,fygars):
             goal == (enemy_x, enemy_y)
         else:
             goal = (0, 0)
-    elif nearest_is_fygar_bugged(fygars,state["enemies"][nearest_enemy]["name"]):
+    elif nearest_is_fygar_bugged(fygars, state["enemies"][nearest_enemy]["name"]):
         print("nearest_is_fygar_bugged")
-    elif nearest_is_rock_bugged(maze,state["enemies"][nearest_enemy]["pos"],[digdug_x,digdug_y],"transverse" in state["enemies"][nearest_enemy]):
+    elif nearest_is_rock_bugged(
+        maze,
+        state["enemies"][nearest_enemy]["pos"],
+        [digdug_x, digdug_y],
+        "traverse" in state["enemies"][nearest_enemy],
+    ):
         print("nearest_is_rock_bugged")
-        
-    # if int(state["step"]) > 2000:
-    #     controlo = True
 
-    #     for enemy in state["enemies"]:
-    #         if enemy["name"] == "Fygar":
-    #             controlo = False
-    #             break
+    if int(state["step"]) > 2000:
+        controlo = True
 
-    #     if controlo:
-    #         goal = (47, 23)
+        for enemy in state["enemies"]:
+            if enemy["name"] == "Fygar":
+                controlo = False
+                break
 
-    #         if start == goal:
-    #             return "A"
+        if controlo:
+            goal = (47, 23)
+
+            if start == goal:
+                return "A"
 
     priority_queue = [(0, start)]
     visited = set()
