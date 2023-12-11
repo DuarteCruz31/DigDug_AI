@@ -4,7 +4,7 @@ import json
 import os
 import websockets
 import math
-from search import *
+from searchAndre import *
 
 mapa = None
 linhas = 24
@@ -38,11 +38,15 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 mapa[digdug_x][digdug_y] = 0
 
-                nearest_enemy = nearest_distance(state, mapa)
+                exist_fygar = False
+                for enemy in state["enemies"]:
+                    if enemy["name"] == "Fygar":
+                        exist_fygar = True
+                        break
+
+                nearest_enemy = nearest_distance(state, mapa, exist_fygar)
                 if nearest_enemy is None:
                     continue
-
-                enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
 
                 acao = algoritmo_search(state, nearest_enemy, mapa, last_move)
 
@@ -81,13 +85,13 @@ def get_action(current, next):
         return "w"
 
 
-def nearest_distance(state, mapa):
+def nearest_distance(state, mapa, exist_fygar):
     nearest_distance = float("inf")
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
-        if enemy["pos"][1] == 0 and enemy["name"] != "Fygar":
-            continue
+        """ if enemy["name"] != "Fygar" and exist_fygar:
+            continue """
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance
@@ -99,10 +103,7 @@ def nearest_distance(state, mapa):
 def algoritmo_search(state, enemy, mapa, last_move):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     digdug_x, digdug_y = state["digdug"]
-    enemy_name = state["enemies"][enemy]["name"]
     enemy_dir = state["enemies"][enemy]["dir"]
-
-    level = int(state["level"])
 
     if (
         enemy_dir == 0
