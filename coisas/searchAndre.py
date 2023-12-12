@@ -503,19 +503,25 @@ def astar(maze, start, goal, state, nearest_enemy, last_move):
 
                 control = False
                 for enemy in state["enemies"]:
-                    if enemy["name"] == "Fygar":
-                        if goal != neighbor and in_the_fire(state, maze, neighbor):
+                    if (
+                        current_node[0] != 0
+                        and current_node[0] != 47
+                        and current_node[1] != 0
+                        and current_node[1] != 23
+                    ):
+                        if enemy["name"] == "Fygar":
+                            if goal != neighbor and in_the_fire(state, maze, neighbor):
+                                control = True
+                                break
+                        if (
+                            abs(nx_ - enemy["pos"][0]) <= 1
+                            and abs(ny_ - enemy["pos"][1]) <= 1
+                        ):
                             control = True
                             break
-                    if (
-                        abs(nx_ - enemy["pos"][0]) <= 1
-                        and abs(ny_ - enemy["pos"][1]) <= 1
-                    ):
-                        control = True
-                        break
 
-                for rocks in state["rocks"]:
-                    if rocks["pos"] == neighbor:
+                for rock in state["rocks"]:
+                    if rock["pos"] == [nx_, ny_]:
                         control = True
                         break
 

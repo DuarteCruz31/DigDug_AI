@@ -4,5 +4,6 @@
 rm -f scores.txt
 
 while true; do
-    python3 student.py
+    python andre.py
+    python media.py
 done
