@@ -92,8 +92,8 @@ def nearest_distance(state, exist_pooka):
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
-        if enemy["name"] != "Pooka" and exist_pooka:
-            continue
+        """ if enemy["name"] != "Pooka" and exist_pooka:
+            continue """
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance
