@@ -413,7 +413,54 @@ def in_the_fire(state, maze, position):
     return False
 
 
-def astar(maze, start, goal, state, nearest_enemy, last_move):
+def set_goal(state, enemy, mapa):
+    enemy_x, enemy_y = state["enemies"][enemy]["pos"]
+    digdug_x, digdug_y = state["digdug"]
+    enemy_dir = state["enemies"][enemy]["dir"]
+
+    if (
+        enemy_dir == 0
+        and enemy_y + 3 <= linhas - 1
+        and enemy_y - 1 >= 0
+        and mapa[enemy_x][enemy_y - 1] == 1
+    ):  # cima
+        enemy_y += 3
+    elif (
+        enemy_dir == 1
+        and enemy_x - 3 > 0
+        and enemy_x + 1 <= colunas - 1
+        and mapa[enemy_x + 1][enemy_y] == 1
+    ):  # direita
+        enemy_x -= 3
+    elif (
+        enemy_dir == 2
+        and enemy_y - 3 > 0
+        and enemy_y + 1 <= linhas - 1
+        and mapa[enemy_x][enemy_y + 1] == 1
+    ):  # baixo
+        enemy_y -= 3
+    elif (
+        enemy_dir == 3
+        and enemy_x + 3 <= colunas - 1
+        and enemy_x - 1 >= 0
+        and mapa[enemy_x - 1][enemy_y] == 1
+    ):  # esquerda
+        enemy_x += 3
+    else:
+        if enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
+            enemy_y += 2
+        elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
+            enemy_x -= 2
+        elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
+            enemy_y -= 2
+        elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
+            enemy_x += 2
+
+    return (enemy_x, enemy_y)
+
+
+def astar(maze, start, state, nearest_enemy, last_move):
+    goal = set_goal(state, nearest_enemy, maze)
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
