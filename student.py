@@ -5,12 +5,10 @@ import os
 import websockets
 import math
 from search import *
-from fygar import *
 
 mapa = None
 linhas = 24
 colunas = 48
-fygars = {}
 
 
 async def agent_loop(server_address="localhost:8000", agent_name="student"):
@@ -29,7 +27,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 if "enemies" not in state or len(state["enemies"]) == 0:
                     continue
-                
 
                 if i:
                     for rock in state["rocks"]:
@@ -41,25 +38,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 mapa[digdug_x][digdug_y] = 0
 
-                #fygar last 4 moves
-                for e in state["enemies"]:
-                    if e["name"] == "Fygar":
-                        if e["id"] not in fygars:
-                            x = Last4MovesList()
-                            x.add_move(e["pos"])
-                            fygars[e["id"]] = x
-                        else:
-                            fygars[e["id"]].add_move(e["pos"])
+                exist_pooka = False
+                for enemy in state["enemies"]:
+                    if enemy["name"] == "Pooka":
+                        exist_pooka = True
+                        break
 
-        
-
-                nearest_enemy = nearest_distance(state, mapa)
+                nearest_enemy = nearest_distance(state, exist_pooka)
                 if nearest_enemy is None:
                     continue
-                
-                enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
 
-                acao = algoritmo_search(state, nearest_enemy, mapa, last_move)
+                acao = astar(
+                    mapa, (digdug_x, digdug_y), state, nearest_enemy, last_move
+                )
 
                 if acao != None and len(acao) == 2 and acao[1] == acao[0]:
                     last_move = "A"
@@ -94,77 +85,21 @@ def get_action(current, next):
         return "s"
     elif current_y > next_y:
         return "w"
-                  
 
-def nearest_distance(state, mapa):
+
+def nearest_distance(state, exist_pooka):
     nearest_distance = float("inf")
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
+        """ if enemy["name"] != "Pooka" and exist_pooka:
+            continue """
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance
             nearest_enemy = i
 
     return nearest_enemy
-
-
-def algoritmo_search(state, enemy, mapa, last_move):
-    enemy_x, enemy_y = state["enemies"][enemy]["pos"]
-    digdug_x, digdug_y = state["digdug"]
-    enemy_name = state["enemies"][enemy]["name"]
-    enemy_dir = state["enemies"][enemy]["dir"]
-
-    level = int(state["level"])
-
-    # if (
-    #     enemy_dir == 0
-    #     and enemy_y + 3 <= linhas - 1
-    #     and enemy_y - 1 >= 0
-    #     and mapa[enemy_x][enemy_y - 1] == 1
-    # ):  # cima
-    #     enemy_y += 3
-    # elif (
-    #     enemy_dir == 1
-    #     and enemy_x - 3 > 0
-    #     and enemy_x + 1 <= colunas - 1
-    #     and mapa[enemy_x + 1][enemy_y] == 1
-    # ):  # direita
-    #     enemy_x -= 3
-    # elif (
-    #     enemy_dir == 2
-    #     and enemy_y - 3 > 0
-    #     and enemy_y + 1 <= linhas - 1
-    #     and mapa[enemy_x][enemy_y + 1] == 1
-    # ):  # baixo
-    #     enemy_y -= 3
-    # elif (
-    #     enemy_dir == 3
-    #     and enemy_x + 3 <= colunas - 1
-    #     and enemy_x - 1 >= 0
-    #     and mapa[enemy_x - 1][enemy_y] == 1
-    # ):  # esquerda
-    #     enemy_x += 3
-    # else:
-    if enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
-        enemy_y += 2
-    elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
-        enemy_x -= 2
-    elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
-        enemy_y -= 2
-    elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
-        enemy_x += 2
-
-    if level >= 7:
-        if enemy_name == "Fygar":
-            enemy_x, enemy_y = state["enemies"][enemy]["pos"]
-            goal_y = enemy_y
-            enemy_x, enemy_y = enemy_x, goal_y
-
-    return astar(
-        mapa, (digdug_x, digdug_y), (enemy_x, enemy_y), state, enemy, last_move, fygars
-
-    )
 
 
 loop = asyncio.get_event_loop()

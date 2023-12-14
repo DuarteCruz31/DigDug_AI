@@ -381,7 +381,7 @@ def in_the_fire(state, maze, position):
                         or enemy_x - 4 == position[0]
                     ):
                         return True
-                elif enemy_x - 1 >= 0 and maze[enemy_x + 1][enemy_y] == 1:
+                elif enemy_x - 1 >= 0 and maze[enemy_x - 1][enemy_y] == 1:
                     if (
                         enemy_x == position[0]
                         or enemy_x + 1 == position[0]
@@ -413,39 +413,54 @@ def in_the_fire(state, maze, position):
     return False
 
 
-def nearest_is_fygar_bugged(f, id):
-    if id in f:
-        return f[id].has_repeated_values()
-    return False
+def set_goal(state, enemy, mapa):
+    enemy_x, enemy_y = state["enemies"][enemy]["pos"]
+    digdug_x, digdug_y = state["digdug"]
+    enemy_dir = state["enemies"][enemy]["dir"]
 
-
-def nearest_is_rock_bugged(maze, enemy, digdug, t):
     if (
-        enemy[0] != 47
-        and enemy[1] != 23
-        and t == False
-        and maze[enemy[0]][enemy[1] + 1] >= 0
-        and maze[enemy[0]][enemy[1] - 1] >= 0
-        and maze[enemy[0] + 1][enemy[1]] >= 0
-        and maze[enemy[0] - 1][enemy[1]] >= 0
-        and (
-            maze[enemy[0]][enemy[1] + 1] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
-        )
-        and (
-            maze[enemy[0]][enemy[1] - 1] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
-        )
-        and (
-            maze[enemy[0] + 1][enemy[1]] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
-        )
-        and (
-            maze[enemy[0] - 1][enemy[1]] == 1 and maze[enemy[0]][enemy[1] + 1] != digdug
-        )
-    ):
-        return True
-    return False
+        enemy_dir == 0
+        and enemy_y + 3 <= linhas - 1
+        and enemy_y - 1 >= 0
+        and mapa[enemy_x][enemy_y - 1] == 1
+    ):  # cima
+        enemy_y += 3
+    elif (
+        enemy_dir == 1
+        and enemy_x - 3 > 0
+        and enemy_x + 1 <= colunas - 1
+        and mapa[enemy_x + 1][enemy_y] == 1
+    ):  # direita
+        enemy_x -= 3
+    elif (
+        enemy_dir == 2
+        and enemy_y - 3 > 0
+        and enemy_y + 1 <= linhas - 1
+        and mapa[enemy_x][enemy_y + 1] == 1
+    ):  # baixo
+        enemy_y -= 3
+    elif (
+        enemy_dir == 3
+        and enemy_x + 3 <= colunas - 1
+        and enemy_x - 1 >= 0
+        and mapa[enemy_x - 1][enemy_y] == 1
+    ):  # esquerda
+        enemy_x += 3
+    else:
+        if enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
+            enemy_y += 2
+        elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
+            enemy_x -= 2
+        elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
+            enemy_y -= 2
+        elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
+            enemy_x += 2
+
+    return (enemy_x, enemy_y)
 
 
-def astar(maze, start, goal, state, nearest_enemy, last_move, fygars):
+def astar(maze, start, state, nearest_enemy, last_move):
+    goal = set_goal(state, nearest_enemy, maze)
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -466,17 +481,8 @@ def astar(maze, start, goal, state, nearest_enemy, last_move, fygars):
             goal == (enemy_x, enemy_y)
         else:
             goal = (0, 0)
-    elif nearest_is_fygar_bugged(fygars, state["enemies"][nearest_enemy]["name"]):
-        print("nearest_is_fygar_bugged")
-    elif nearest_is_rock_bugged(
-        maze,
-        state["enemies"][nearest_enemy]["pos"],
-        [digdug_x, digdug_y],
-        "traverse" in state["enemies"][nearest_enemy],
-    ):
-        print("nearest_is_rock_bugged")
 
-    if int(state["step"]) > 2000:
+    if int(state["step"]) > 2000 and int(state["level"]) >= 8:
         controlo = True
 
         for enemy in state["enemies"]:
@@ -542,12 +548,32 @@ def astar(maze, start, goal, state, nearest_enemy, last_move, fygars):
             if 0 <= nx_ < len(maze) and 0 <= ny_ < len(maze[0]):
                 neighbor = (nx_, ny_)
 
-                if (
-                    state["enemies"][nearest_enemy]["name"] == "Fygar"
-                    and int(state["level"]) >= 7
-                ):
-                    if goal != neighbor and in_the_fire(state, maze, neighbor):
-                        continue
+                control = False
+                for enemy in state["enemies"]:
+                    if (
+                        current_node[0] != 0
+                        and current_node[0] != 47
+                        and current_node[1] != 0
+                        and current_node[1] != 23
+                    ):
+                        if enemy["name"] == "Fygar":
+                            if goal != neighbor and in_the_fire(state, maze, neighbor):
+                                control = True
+                                break
+                        if (
+                            abs(nx_ - enemy["pos"][0]) <= 1
+                            and abs(ny_ - enemy["pos"][1]) <= 1
+                        ):
+                            control = True
+                            break
+
+                for rock in state["rocks"]:
+                    if rock["pos"] == [nx_, ny_]:
+                        control = True
+                        break
+
+                if control == True:
+                    continue
 
                 new_cost = cost_so_far[current_node] + (
                     calculate_cost_avoid_enemies(maze, neighbor, state, nearest_enemy)
