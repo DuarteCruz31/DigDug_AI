@@ -16,6 +16,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
         last_move = None
         i = True
+        moves_fygar = {}
         while True:
             try:
                 state = json.loads(await websocket.recv())
@@ -38,19 +39,36 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 mapa[digdug_x][digdug_y] = 0
 
-                exist_pooka = False
                 for enemy in state["enemies"]:
-                    if enemy["name"] == "Pooka":
-                        exist_pooka = True
-                        break
+                    if enemy["name"] == "Fygar":
+                        if enemy["id"] not in moves_fygar:
+                            moves_fygar[enemy["id"]] = [enemy["pos"]]
+                        else:
+                            if moves_fygar[enemy["id"]][-1] != enemy["pos"]:
+                                moves_fygar[enemy["id"]].append(enemy["pos"])
 
-                nearest_enemy = nearest_distance(state, exist_pooka)
+                nearest_enemy = nearest_distance(state)
                 if nearest_enemy is None:
                     continue
 
                 acao = astar(
-                    mapa, (digdug_x, digdug_y), state, nearest_enemy, last_move
+                    mapa,
+                    (digdug_x, digdug_y),
+                    state,
+                    nearest_enemy,
+                    last_move,
+                    moves_fygar,
                 )
+                if acao == None:
+                    acao = astar(
+                        mapa,
+                        (digdug_x, digdug_y),
+                        state,
+                        nearest_enemy,
+                        last_move,
+                        moves_fygar,
+                        controlo=True,
+                    )
 
                 if acao != None and len(acao) == 2 and acao[1] == acao[0]:
                     last_move = "A"
@@ -87,13 +105,11 @@ def get_action(current, next):
         return "w"
 
 
-def nearest_distance(state, exist_pooka):
+def nearest_distance(state):
     nearest_distance = float("inf")
     nearest_enemy = None
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
-        """ if enemy["name"] != "Pooka" and exist_pooka:
-            continue """
         distance = math.dist(state["digdug"], enemy["pos"])
         if distance < nearest_distance:
             nearest_distance = distance

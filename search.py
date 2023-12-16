@@ -95,14 +95,31 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
         if position in cant_be_there:
             total += POINTS_POOKA
 
+        """ nearest_enemy_name = state["enemies"][nearest_enemy]["name"]
+        enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+
+        if (
+            nearest_enemy_name == "Fygar"
+            and int(state["level"]) >= 7
+            and calc_distance(state["digdug"], state["enemies"][nearest_enemy]["pos"])
+            <= 5
+        ):
+            if position[1] == enemy_y:
+                total += 1000
+
+            total += abs(position[0] - enemy_x) * 1000
+
+            if position[0] == enemy_x:
+                total -= 1000
+
+        if can_shoot(state, maze, None, nearest_enemy, position[0], position[1]):
+            total -= 10000 """
+
     return total
 
 
 def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
     total = 0
-
-    if maze[position[0]][position[1]] == 0:
-        total += 1
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -413,10 +430,47 @@ def in_the_fire(state, maze, position):
     return False
 
 
-def set_goal(state, enemy, mapa):
+def fygar_is_repeating_positions(moves_fygar):
+    if len(moves_fygar) < 10:
+        return False
+
+    if (
+        moves_fygar[-1] == moves_fygar[-3]
+        and moves_fygar[-2] == moves_fygar[-4]
+        and moves_fygar[-1] == moves_fygar[-5]
+        and moves_fygar[-2] == moves_fygar[-6]
+        and moves_fygar[-1] == moves_fygar[-7]
+        and moves_fygar[-2] == moves_fygar[-8]
+    ):
+        return True
+
+    return False
+
+
+def nearest_fygar_stuck_on_rock(state, mapa, nearest_enemy):
+    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
+
+    if (
+        enemy_x + 1 <= 47
+        and enemy_x - 1 >= 0
+        and enemy_y + 1 <= 23
+        and enemy_y - 1 >= 0
+        and mapa[enemy_x + 1][enemy_y] == 1
+        and mapa[enemy_x - 1][enemy_y] == 1
+        and mapa[enemy_x][enemy_y + 1] == 1
+        and mapa[enemy_x][enemy_y - 1] == 1
+    ):
+        return True
+    return False
+
+
+def set_goal(state, enemy, mapa, moves_fygar):
     enemy_x, enemy_y = state["enemies"][enemy]["pos"]
     digdug_x, digdug_y = state["digdug"]
     enemy_dir = state["enemies"][enemy]["dir"]
+    enemy_name = state["enemies"][enemy]["name"]
+    level = int(state["level"])
+    id = state["enemies"][enemy]["id"]
 
     if (
         enemy_dir == 0
@@ -456,11 +510,51 @@ def set_goal(state, enemy, mapa):
         elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
             enemy_x += 2
 
+    """ if level >= 7 and enemy_name == "Fygar":
+        enemy_x, enemy_y = state["enemies"][enemy]["pos"] """
+
+    if level >= 7 and id in moves_fygar:
+        if fygar_is_repeating_positions(moves_fygar[id]):
+            # print("repetiu")
+            previous_move = moves_fygar[id][
+                -1
+            ]  # (x, y)  (23,12) -> (22, 12) -> (23,12)
+            second_move = moves_fygar[id][-2]  # (x, y)   (23,12) -> (23,13) -> (23,12)
+
+            if previous_move[0] == second_move[0]:
+                if previous_move[1] > second_move[1]:
+                    enemy_x = previous_move[0]
+                    enemy_y = (
+                        previous_move[1] + 1 if int(previous_move[1]) + 1 < 23 else -1
+                    )
+                elif previous_move[1] < second_move[1]:
+                    enemy_x = second_move[0]
+                    enemy_y = second_move[1] + 1 if int(second_move[1]) + 1 < 23 else -1
+            elif previous_move[1] == second_move[1]:
+                if previous_move[0] > second_move[0]:
+                    enemy_x = previous_move[0]
+                    enemy_y = (
+                        previous_move[1] + 1 if int(previous_move[1]) + 1 < 23 else -1
+                    )
+                elif previous_move[0] < second_move[0]:
+                    enemy_x = second_move[0]
+                    enemy_y = (
+                        previous_move[1] + 1 if int(previous_move[1]) + 1 < 23 else -1
+                    )
+
+    if enemy_name == "Fygar" and nearest_fygar_stuck_on_rock(state, mapa, enemy):
+        enemy_x, enemy_y = state["enemies"][enemy]["pos"]
+        enemy_y += 1
+
     return (enemy_x, enemy_y)
 
 
-def astar(maze, start, state, nearest_enemy, last_move):
-    goal = set_goal(state, nearest_enemy, maze)
+def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=False):
+    goal = (
+        set_goal(state, nearest_enemy, maze, moves_fygar)
+        if controlo == False
+        else (0, 0)
+    )
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -471,18 +565,27 @@ def astar(maze, start, state, nearest_enemy, last_move):
     ):
         return "A"
     elif (
-        (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
-        or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
-        and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
-        == False
-    ) or in_the_fire(state, maze, start):
+        (
+            (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
+            or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
+            and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
+            == False
+        )
+        or in_the_fire(state, maze, start)
+        or in_the_fire(state, maze, goal)
+        or controlo == True
+    ):
         avoid = True
         if start == (0, 0):
             goal == (enemy_x, enemy_y)
         else:
             goal = (0, 0)
 
-    if int(state["step"]) > 2000 and int(state["level"]) >= 8:
+    if (
+        int(state["step"]) > 2000
+        and int(state["level"]) >= 8
+        and len(state["enemies"]) < 4
+    ):
         controlo = True
 
         for enemy in state["enemies"]:
@@ -515,33 +618,41 @@ def astar(maze, start, state, nearest_enemy, last_move):
                 return path
 
             # Ver o ultimo move
-            last_node = path[-2]
-            dx, dy = current_node[0] - last_node[0], current_node[1] - last_node[1]
+            if len(path) > 1:
+                last_node = path[-2]
+                dx, dy = current_node[0] - last_node[0], current_node[1] - last_node[1]
 
-            if (
-                (dx == 1 and real_enemy_x > digdug_x)
-                or (dx == -1 and real_enemy_x < digdug_x)
-                or (dy == 1 and real_enemy_y > digdug_y)
-                or (dy == -1 and real_enemy_y < digdug_y)
-            ):
+                if (
+                    (
+                        dx == 1 and real_enemy_x > digdug_x
+                    )  # move para a direita e o inimigo esta a direita
+                    or (
+                        dx == -1 and real_enemy_x < digdug_x
+                    )  # move para a esquerda e o inimigo esta a esquerda
+                    or (
+                        dy == 1 and real_enemy_y > digdug_y
+                    )  # move para baixo e o inimigo esta abaixo
+                    or (
+                        dy == -1 and real_enemy_y < digdug_y
+                    )  # move para cima e o inimigo esta acima
+                ):
+                    return path
+
+                new_goal = None
+                if real_enemy_x > digdug_x:
+                    new_goal = (current_node[0] + 1, current_node[1])
+                elif real_enemy_x < digdug_x:
+                    new_goal = (current_node[0] - 1, current_node[1])
+                elif real_enemy_y > digdug_y:
+                    new_goal = (current_node[0], current_node[1] + 1)
+                elif real_enemy_y < digdug_y:
+                    new_goal = (current_node[0], current_node[1] - 1)
+
+                if new_goal is not None:
+                    # print("new goal")
+                    path[-1] = new_goal
+
                 return path
-
-            # Se o último movimento não estiver na direção do inimigo, remove o último nó e adiciona um novo ja bem
-            new_goal = None
-            if real_enemy_x > digdug_x:
-                new_goal = (current_node[0] + 1, current_node[1])
-            elif real_enemy_x < digdug_x:
-                new_goal = (current_node[0] - 1, current_node[1])
-            elif real_enemy_y > digdug_y:
-                new_goal = (current_node[0], current_node[1] + 1)
-            elif real_enemy_y < digdug_y:
-                new_goal = (current_node[0], current_node[1] - 1)
-
-            if new_goal is not None:
-                # print("new goal")
-                path[-1] = new_goal
-
-            return path
 
         for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             nx_, ny_ = current_node[0] + dx, current_node[1] + dy
@@ -556,23 +667,28 @@ def astar(maze, start, state, nearest_enemy, last_move):
                         and current_node[1] != 0
                         and current_node[1] != 23
                     ):
-                        if enemy["name"] == "Fygar":
-                            if goal != neighbor and in_the_fire(state, maze, neighbor):
+                        """if enemy["name"] == "Fygar":
+                        if goal != neighbor and in_the_fire(state, maze, neighbor):
+                            control = True
+                            break"""
+                        if enemy["name"] != "Fygar":
+                            if (
+                                abs(nx_ - enemy["pos"][0]) <= 1
+                                and abs(ny_ - enemy["pos"][1]) <= 1
+                            ):
                                 control = True
                                 break
-                        if (
-                            abs(nx_ - enemy["pos"][0]) <= 1
-                            and abs(ny_ - enemy["pos"][1]) <= 1
-                        ):
-                            control = True
-                            break
 
-                for rock in state["rocks"]:
-                    if rock["pos"] == [nx_, ny_]:
+                """ for rock in state["rocks"]:
+                    rock_x, rock_y = rock["pos"]
+                    if [rock_x, rock_y] == [nx_, ny_] or [rock_x, rock_y + 1] == [
+                        nx_,
+                        ny_,
+                    ]:
                         control = True
-                        break
+                        break """
 
-                if control == True:
+                if control:
                     continue
 
                 new_cost = cost_so_far[current_node] + (
