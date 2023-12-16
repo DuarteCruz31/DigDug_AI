@@ -29,16 +29,19 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 if "enemies" not in state or len(state["enemies"]) == 0:
                     continue
 
+                # Set rocks as 1 on the map (to be used in the A* algorithm)
                 if i:
                     for rock in state["rocks"]:
                         rock_x, rock_y = rock["pos"]
                         mapa[rock_x][rock_y] = 1
                     i = False
 
+                # Update player's position on the map
                 digdug_x, digdug_y = state["digdug"]
 
-                mapa[digdug_x][digdug_y] = 0
+                mapa[digdug_x][digdug_y] = 0  # Remove wall from the map
 
+                # Update Fygar enemies' move history
                 for enemy in state["enemies"]:
                     if enemy["name"] == "Fygar":
                         if enemy["id"] not in moves_fygar:
@@ -47,10 +50,12 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             if moves_fygar[enemy["id"]][-1] != enemy["pos"]:
                                 moves_fygar[enemy["id"]].append(enemy["pos"])
 
+                # Get the index of the nearest enemy to the player
                 nearest_enemy = nearest_distance(state)
                 if nearest_enemy is None:
                     continue
 
+                # Preform A* algorithm to find the best path to the nearest enemy, if possible
                 acao = astar(
                     mapa,
                     (digdug_x, digdug_y),
@@ -59,6 +64,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                     last_move,
                     moves_fygar,
                 )
+                # If the A* algorithm fails, try again with the control flag set to True, runs away avoiding enemies
                 if acao == None:
                     acao = astar(
                         mapa,
@@ -92,6 +98,20 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
 
 def get_action(current, next):
+    """
+    Determines the action to move from the current position to the next position.
+
+    This function takes two positions, the current and the next, and returns the action
+    needed to move from the current position to the next position in the game.
+
+    Args:
+        current (tuple): A tuple representing the current coordinates (x, y).
+        next (tuple): A tuple representing the target coordinates (x, y).
+
+    Returns:
+        str: The action ('a' for left, 'd' for right, 'w' for up, 's' for down) to move from
+        the current position to the next position.
+    """
     current_x, current_y = current
     next_x, next_y = next
 
@@ -106,6 +126,18 @@ def get_action(current, next):
 
 
 def nearest_distance(state):
+    """
+    Finds the index of the nearest enemy to the player in the game state.
+
+    This function calculates the Euclidean distance between the player (digdug) and each enemy
+    in the game state and returns the index of the enemy that is closest to the player.
+
+    Args:
+        state (dict): The game state containing information about the current game situation.
+
+    Returns:
+        int: The index of the nearest enemy in the "enemies" list of the game state.
+    """
     nearest_distance = float("inf")
     nearest_enemy = None
     for i in range(len(state["enemies"])):
