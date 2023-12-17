@@ -4,9 +4,9 @@ from auxiliarFuncs import *
 POINTS_ROCKS = 10000
 POINTS_FYGAR = 10000
 POINTS_WALL = 5
-POINTS_POOKA = 10000
+POINTS_POOKA = 60000
 POINTS_GHOST = 10000
-POINTS_AVOID = 10000
+POINTS_AVOID = 60000
 
 
 def calculate_cost_normal(maze, position, state, nearest_enemy):
@@ -28,10 +28,16 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
     """
     total = 0
 
-    if maze[position[0]][position[1]] == 1:
-        total += POINTS_WALL
+    if int(state["level"]) >= 7 and state["enemies"][nearest_enemy]["name"] == "Fygar":
+        if maze[position[0]][position[1]] == 1:
+            total += 0
+        else:
+            total += 0
     else:
-        total += 1
+        if maze[position[0]][position[1]] == 1:
+            total += POINTS_WALL
+        else:
+            total += 1
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -372,14 +378,14 @@ def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=Fa
                                 control = True
                                 break
 
-                """ for rock in state["rocks"]:
+                for rock in state["rocks"]:
                     rock_x, rock_y = rock["pos"]
                     if [rock_x, rock_y] == [nx_, ny_] or [rock_x, rock_y + 1] == [
                         nx_,
                         ny_,
                     ]:
                         control = True
-                        break """
+                        break
 
                 if control:
                     continue
