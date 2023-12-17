@@ -18,7 +18,7 @@ from websockets.legacy.protocol import WebSocketCommonProtocol
 from game import Game
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 wslogger = logging.getLogger("websockets")
 wslogger.setLevel(logging.WARN)
@@ -200,11 +200,6 @@ class GameServer:
 
                 game_info = self.game.info()
                 game_info["player"] = self.current_player.name
-
-                # mandar scores para ficheiro
-                f = open("./coisas/scores.txt", "a")
-                f.write(f"{self.game.score} {self.game.level}\n")
-                f.close()
 
                 await self.send_info(game_info, highscores=True)
                 await self.current_player.ws.close()
