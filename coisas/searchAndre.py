@@ -1,7 +1,5 @@
 import heapq
-
-linhas = 24
-colunas = 48
+from auxiliarFuncsAndre import *
 
 POINTS_ROCKS = 10000
 POINTS_FYGAR = 10000
@@ -11,11 +9,23 @@ POINTS_GHOST = 10000
 POINTS_AVOID = 10000
 
 
-def calc_distance(position, end):
-    return abs((position[0] - end[0])) + abs((position[1] - end[1]))
-
-
 def calculate_cost_normal(maze, position, state, nearest_enemy):
+    """
+    Calculates the normal cost of moving to a specific position without avoiding enemies.
+
+    This function calculates the normal cost of moving to a specific position on the game map without
+    considering the presence of enemies. The cost is influenced by various factors, such as the type of tile
+    at the position, the presence of rocks, and the proximity to ghosts.
+
+    Args:
+        maze (list): A 2D list representing the game map where 1 indicates a wall and 0 indicates an open space.
+        position (tuple): A tuple representing the target coordinates (x, y) for which the cost is calculated.
+        state (dict): The game state containing information about the current game situation.
+        nearest_enemy (int): The index of the nearest enemy in the "enemies" list of the game state.
+
+    Returns:
+        float: The calculated normal cost for moving to the specified position without avoiding enemies.
+    """
     total = 0
 
     if maze[position[0]][position[1]] == 1:
@@ -99,10 +109,23 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 
 
 def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
-    total = 0
+    """
+    Calculates the cost of moving to a specific position while avoiding enemies.
 
-    if maze[position[0]][position[1]] == 0:
-        total += 1
+    This function calculates the cost of moving to a specific position on the game map while considering
+    the presence of rocks, ghosts, and other enemies. The cost is influenced by various factors, such as the
+    proximity to rocks and ghosts, as well as penalties for avoiding enemies.
+
+    Args:
+        maze (list): A 2D list representing the game map where 1 indicates a wall and 0 indicates an open space.
+        position (tuple): A tuple representing the target coordinates (x, y) for which the cost is calculated.
+        state (dict): The game state containing information about the current game situation.
+        nearest_enemy (int): The index of the nearest enemy in the "enemies" list of the game state.
+
+    Returns:
+        float: The calculated cost for moving to the specified position while avoiding enemies.
+    """
+    total = 0
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -183,284 +206,48 @@ def calculate_cost_avoid_enemies(maze, position, state, nearest_enemy):
     return total
 
 
-def enemies_not_in_the_same_position(state, nearest_enemy):
-    for enemy in state["enemies"]:
-        if enemy != state["enemies"][nearest_enemy]:
-            if enemy["pos"] == state["enemies"][nearest_enemy]["pos"]:
-                return False
-    return True
-
-
-def not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y):
-    nearest_x, nearest_y = state["enemies"][nearest_enemy]["pos"]
-
-    for enemy in state["enemies"]:
-        if enemy != state["enemies"][nearest_enemy]:
-            enemy_x, enemy_y = enemy["pos"]
-            if enemy_x == digdug_x == nearest_x:
-                if (
-                    enemy_y > digdug_y > nearest_y
-                    or enemy_y < digdug_y < nearest_y
-                    and abs(enemy_y - digdug_y) <= 3
-                ):
-                    return False
-            elif enemy_y == digdug_y == nearest_y:
-                if (
-                    enemy_x > digdug_x > nearest_x
-                    or enemy_x < digdug_x < nearest_x
-                    and abs(enemy_x - digdug_x) <= 3
-                ):
-                    return False
-            elif enemy_x == digdug_x and nearest_y == digdug_y:
-                if abs(digdug_y - enemy_y) <= 3:
-                    return False
-            elif enemy_y == digdug_y and nearest_x == digdug_x:
-                if abs(digdug_x - enemy_x) <= 3:
-                    return False
-
-    return True
-
-
-def check_other_enimies_while_shooting(state, mapa, nearest_enemy):
-    enemies = state["enemies"]
-    digdug_x, digdug_y = state["digdug"]
-    shooting_distance = 2
-
-    for enemy in enemies:
-        if enemy != state["enemies"][nearest_enemy]:
-            enemy_x, enemy_y = enemy["pos"]
-            if enemy_x == digdug_x:
-                if enemy_y > digdug_y:
-                    if (
-                        enemy_y - digdug_y <= shooting_distance
-                        and enemy_y - 3 >= 0
-                        and all(mapa[digdug_x][enemy_y - i] == 0 for i in range(1, 4))
-                    ):
-                        return False
-                else:
-                    if (
-                        digdug_y - enemy_y <= shooting_distance
-                        and enemy_y + 3 <= linhas - 1
-                        and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
-                    ):
-                        return False
-            elif enemy_y == digdug_y:
-                if (
-                    enemy_x > digdug_x
-                    and enemy_x - 3 >= 0
-                    and all(mapa[enemy_x - i][digdug_y] == 0 for i in range(1, 4))
-                ):
-                    if enemy_x - digdug_x <= shooting_distance:
-                        return False
-                else:
-                    if (
-                        digdug_x - enemy_x <= shooting_distance
-                        and enemy_x + 3 <= colunas - 1
-                        and all(mapa[enemy_x + i][digdug_y] == 0 for i in range(1, 4))
-                    ):
-                        return False
-    return True
-
-
-def can_shoot(state, mapa, last_move, nearest_enemy, digdug_x, digdug_y):
-    # print(last_move)
-    shooting_distance = 3
-    enemy_x, enemy_y = state["enemies"][nearest_enemy]["pos"]
-    if last_move == "d":  # ultima jogada foi para a direita e o inimigo esta a direita
-        if (
-            enemy_x > digdug_x
-            and enemy_y == digdug_y
-            and enemy_x - digdug_x <= shooting_distance
-            and enemy_x - 3 >= 0
-            and all(mapa[enemy_x - i][enemy_y] == 0 for i in range(1, 4))
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
-        ):
-            return True
-    elif (
-        last_move == "a"
-    ):  # ultima jogada foi para a esquerda e o inimigo esta a esquerda
-        if (
-            enemy_x < digdug_x
-            and enemy_y == digdug_y
-            and digdug_x - enemy_x <= shooting_distance
-            and enemy_x + 3 <= colunas - 1
-            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
-        ):
-            return True
-    elif last_move == "w":  # ultima jogada foi para cima e o inimigo esta acima
-        if (
-            enemy_y < digdug_y
-            and enemy_x == digdug_x
-            and digdug_y - enemy_y <= shooting_distance
-            and enemy_y + 3 <= linhas - 1
-            and all(mapa[digdug_x][enemy_y + i] == 0 for i in range(1, 4))
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
-        ):
-            return True
-    elif last_move == "s":  # ultima jogada foi para baixo e o inimigo esta abaixo
-        if (
-            enemy_y > digdug_y
-            and enemy_x == digdug_x
-            and enemy_y - digdug_y <= shooting_distance
-            and enemy_y - 3 >= 0
-            and all(mapa[digdug_x][enemy_y - i] == 0 for i in range(1, 4))
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-            and not_sandwiched(state, mapa, nearest_enemy, digdug_x, digdug_y)
-        ):
-            return True
-    elif last_move == "A":  # ultima jogada foi para atirar
-        if (
-            enemy_x > digdug_x
-            and enemy_y == digdug_y
-            and enemy_x - digdug_x <= shooting_distance
-            and enemy_x - 3 >= 0
-            and all(mapa[enemy_x - i][enemy_y] == 0 for i in range(1, 4))
-            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-        ):
-            return True
-        elif (
-            enemy_x < digdug_x
-            and enemy_y == digdug_y
-            and digdug_x - enemy_x <= shooting_distance
-            and enemy_x + 3 <= colunas - 1
-            and all(mapa[enemy_x + i][enemy_y] == 0 for i in range(1, 4))
-            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-        ):
-            return True
-        elif (
-            enemy_y < digdug_y
-            and enemy_x == digdug_x
-            and digdug_y - enemy_y <= shooting_distance
-            and enemy_y + 3 <= linhas - 1
-            and all(mapa[enemy_x][enemy_y + i] == 0 for i in range(1, 4))
-            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-        ):
-            return True
-        elif (
-            enemy_y > digdug_y
-            and enemy_x == digdug_x
-            and enemy_y - digdug_y <= shooting_distance
-            and enemy_y - 3 >= 0
-            and all(mapa[enemy_x][enemy_y - i] == 0 for i in range(1, 4))
-            and check_other_enimies_while_shooting(state, mapa, nearest_enemy)
-            and enemies_not_in_the_same_position(state, nearest_enemy)
-        ):
-            return True
-    return False
-
-
 def heuristic(a, b):
-    # distancia euclidiana, faz com nao ande na diagonal
-    # disancia de manhattan, faz com que ande na diagonal
-    # distancia de chebyshev ou o caralhs, faz com que ande na diagonal
-    # return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+    """
+    Calculates the Manhattan distance between two points in a 2D plane.
+
+    This heuristic function computes the Manhattan distance between two points, which is the sum of the
+    absolute differences of their x and y coordinates. It is commonly used in pathfinding algorithms to
+    estimate the cost of reaching one point from another.
+
+    Args:
+        a (tuple): A tuple representing the coordinates (x, y) of the first point.
+        b (tuple): A tuple representing the coordinates (x, y) of the second point.
+
+    Returns:
+        float: The Manhattan distance between the two points.
+    """
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def in_the_fire(state, maze, position):
-    for enemy in state["enemies"]:
-        enemy_name = enemy["name"]
-        enemy_x, enemy_y = enemy["pos"]
-        if enemy_name == "Fygar":
-            enemy_dir = enemy["dir"]
-            if enemy_y == position[1]:
-                # Vai bater com a cabeça na parede
-                if enemy_x + 1 <= 47 and maze[enemy_x + 1][enemy_y] == 1:
-                    if (
-                        enemy_x == position[0]
-                        or enemy_x - 1 == position[0]
-                        or enemy_x - 2 == position[0]
-                        or enemy_x - 3 == position[0]
-                        or enemy_x - 4 == position[0]
-                    ):
-                        return True
-                elif enemy_x - 1 >= 0 and maze[enemy_x - 1][enemy_y] == 1:
-                    if (
-                        enemy_x == position[0]
-                        or enemy_x + 1 == position[0]
-                        or enemy_x + 2 == position[0]
-                        or enemy_x + 3 == position[0]
-                        or enemy_x + 4 == position[0]
-                    ):
-                        return True
-                else:
-                    # Normal
-                    if enemy_dir == 1:
-                        if (
-                            enemy_x == position[0]
-                            or enemy_x + 1 == position[0]
-                            or enemy_x + 2 == position[0]
-                            or enemy_x + 3 == position[0]
-                            or enemy_x + 4 == position[0]
-                        ):
-                            return True
-                    elif enemy_dir == 3:
-                        if (
-                            enemy_x == position[0]
-                            or enemy_x - 1 == position[0]
-                            or enemy_x - 2 == position[0]
-                            or enemy_x - 3 == position[0]
-                            or enemy_x - 4 == position[0]
-                        ):
-                            return True
-    return False
+def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=False):
+    """
+    Applies the A* algorithm to find the optimal path from the start to a goal position.
 
+    This function implements the A* algorithm to calculate the optimal path from the start position to a goal.
+    The goal position is determined based on the current game state, the nearest enemy, and additional parameters.
 
-def set_goal(state, enemy, mapa):
-    enemy_x, enemy_y = state["enemies"][enemy]["pos"]
-    digdug_x, digdug_y = state["digdug"]
-    enemy_dir = state["enemies"][enemy]["dir"]
+    Args:
+        maze (list): A 2D list representing the game map where 1 indicates a wall and 0 indicates an open space.
+        start (tuple): A tuple representing the starting coordinates (x, y) for the pathfinding.
+        state (dict): The game state containing information about the current game situation.
+        nearest_enemy (int): The index of the nearest enemy in the "enemies" list of the game state.
+        last_move (str): The last move made by the player.
+        moves_fygar (list): A list of previous moves made by the Fygar enemy.
+        controlo (bool, optional): A flag indicating a specific control scenario. Defaults to False.
 
-    if (
-        enemy_dir == 0
-        and enemy_y + 3 <= linhas - 1
-        and enemy_y - 1 >= 0
-        and mapa[enemy_x][enemy_y - 1] == 1
-    ):  # cima
-        enemy_y += 3
-    elif (
-        enemy_dir == 1
-        and enemy_x - 3 > 0
-        and enemy_x + 1 <= colunas - 1
-        and mapa[enemy_x + 1][enemy_y] == 1
-    ):  # direita
-        enemy_x -= 3
-    elif (
-        enemy_dir == 2
-        and enemy_y - 3 > 0
-        and enemy_y + 1 <= linhas - 1
-        and mapa[enemy_x][enemy_y + 1] == 1
-    ):  # baixo
-        enemy_y -= 3
-    elif (
-        enemy_dir == 3
-        and enemy_x + 3 <= colunas - 1
-        and enemy_x - 1 >= 0
-        and mapa[enemy_x - 1][enemy_y] == 1
-    ):  # esquerda
-        enemy_x += 3
-    else:
-        if enemy_dir == 0 and enemy_y + 2 <= linhas - 1:  # cima
-            enemy_y += 2
-        elif enemy_dir == 1 and enemy_x - 2 >= 0:  # direita
-            enemy_x -= 2
-        elif enemy_dir == 2 and enemy_y - 2 >= 0:  # baixo
-            enemy_y -= 2
-        elif enemy_dir == 3 and enemy_x + 2 <= colunas - 1:  # esquerda
-            enemy_x += 2
-
-    return (enemy_x, enemy_y)
-
-
-def astar(maze, start, state, nearest_enemy, last_move):
-    goal = set_goal(state, nearest_enemy, maze)
+    Returns:
+        str or None: A string representing the next move ('A' for shooting) or None if no valid move is found.
+    """
+    goal = (
+        set_goal(state, nearest_enemy, maze, moves_fygar)
+        if controlo == False
+        else (0, 0)
+    )
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -471,18 +258,27 @@ def astar(maze, start, state, nearest_enemy, last_move):
     ):
         return "A"
     elif (
-        (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
-        or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
-        and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
-        == False
-    ) or in_the_fire(state, maze, start):
+        (
+            (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
+            or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
+            and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
+            == False
+        )
+        or in_the_fire(state, maze, start)
+        or in_the_fire(state, maze, goal)
+        or controlo == True
+    ):
         avoid = True
         if start == (0, 0):
             goal == (enemy_x, enemy_y)
         else:
             goal = (0, 0)
 
-    if int(state["step"]) > 2000 and int(state["level"]) >= 8:
+    if (
+        int(state["step"]) > 2000
+        and int(state["level"]) >= 8
+        and len(state["enemies"]) < 4
+    ):
         controlo = True
 
         for enemy in state["enemies"]:
@@ -515,33 +311,41 @@ def astar(maze, start, state, nearest_enemy, last_move):
                 return path
 
             # Ver o ultimo move
-            last_node = path[-2]
-            dx, dy = current_node[0] - last_node[0], current_node[1] - last_node[1]
+            if len(path) > 1:
+                last_node = path[-2]
+                dx, dy = current_node[0] - last_node[0], current_node[1] - last_node[1]
 
-            if (
-                (dx == 1 and real_enemy_x > digdug_x)
-                or (dx == -1 and real_enemy_x < digdug_x)
-                or (dy == 1 and real_enemy_y > digdug_y)
-                or (dy == -1 and real_enemy_y < digdug_y)
-            ):
+                if (
+                    (
+                        dx == 1 and real_enemy_x > digdug_x
+                    )  # move para a direita e o inimigo esta a direita
+                    or (
+                        dx == -1 and real_enemy_x < digdug_x
+                    )  # move para a esquerda e o inimigo esta a esquerda
+                    or (
+                        dy == 1 and real_enemy_y > digdug_y
+                    )  # move para baixo e o inimigo esta abaixo
+                    or (
+                        dy == -1 and real_enemy_y < digdug_y
+                    )  # move para cima e o inimigo esta acima
+                ):
+                    return path
+
+                new_goal = None
+                if real_enemy_x > digdug_x:
+                    new_goal = (current_node[0] + 1, current_node[1])
+                elif real_enemy_x < digdug_x:
+                    new_goal = (current_node[0] - 1, current_node[1])
+                elif real_enemy_y > digdug_y:
+                    new_goal = (current_node[0], current_node[1] + 1)
+                elif real_enemy_y < digdug_y:
+                    new_goal = (current_node[0], current_node[1] - 1)
+
+                if new_goal is not None:
+                    # print("new goal")
+                    path[-1] = new_goal
+
                 return path
-
-            # Se o último movimento não estiver na direção do inimigo, remove o último nó e adiciona um novo ja bem
-            new_goal = None
-            if real_enemy_x > digdug_x:
-                new_goal = (current_node[0] + 1, current_node[1])
-            elif real_enemy_x < digdug_x:
-                new_goal = (current_node[0] - 1, current_node[1])
-            elif real_enemy_y > digdug_y:
-                new_goal = (current_node[0], current_node[1] + 1)
-            elif real_enemy_y < digdug_y:
-                new_goal = (current_node[0], current_node[1] - 1)
-
-            if new_goal is not None:
-                # print("new goal")
-                path[-1] = new_goal
-
-            return path
 
         for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             nx_, ny_ = current_node[0] + dx, current_node[1] + dy
@@ -556,23 +360,28 @@ def astar(maze, start, state, nearest_enemy, last_move):
                         and current_node[1] != 0
                         and current_node[1] != 23
                     ):
-                        if enemy["name"] == "Fygar":
-                            if goal != neighbor and in_the_fire(state, maze, neighbor):
+                        """if enemy["name"] == "Fygar":
+                        if goal != neighbor and in_the_fire(state, maze, neighbor):
+                            control = True
+                            break"""
+                        if enemy["name"] != "Fygar":
+                            if (
+                                abs(nx_ - enemy["pos"][0]) <= 1
+                                and abs(ny_ - enemy["pos"][1]) <= 1
+                            ):
                                 control = True
                                 break
-                        if (
-                            abs(nx_ - enemy["pos"][0]) <= 1
-                            and abs(ny_ - enemy["pos"][1]) <= 1
-                        ):
-                            control = True
-                            break
 
-                for rock in state["rocks"]:
-                    if rock["pos"] == [nx_, ny_]:
+                """ for rock in state["rocks"]:
+                    rock_x, rock_y = rock["pos"]
+                    if [rock_x, rock_y] == [nx_, ny_] or [rock_x, rock_y + 1] == [
+                        nx_,
+                        ny_,
+                    ]:
                         control = True
-                        break
+                        break """
 
-                if control == True:
+                if control:
                     continue
 
                 new_cost = cost_so_far[current_node] + (
@@ -591,6 +400,20 @@ def astar(maze, start, state, nearest_enemy, last_move):
 
 
 def reconstruct_path(start, goal, came_from):
+    """
+    Reconstructs the path from the start to the goal using the came_from dictionary.
+
+    This function reconstructs the path from the start position to the goal position based on the
+    information stored in the came_from dictionary, which represents the predecessors of each node in the path.
+
+    Args:
+        start (tuple): A tuple representing the starting coordinates (x, y) for the pathfinding.
+        goal (tuple): A tuple representing the goal coordinates (x, y) for the pathfinding.
+        came_from (dict): A dictionary where keys are nodes in the path, and values are their predecessors.
+
+    Returns:
+        list: A list representing the ordered sequence of nodes from the start to the goal.
+    """
     current = goal
     path = [current]
     while current != start:
