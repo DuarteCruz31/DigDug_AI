@@ -497,6 +497,6 @@ def set_goal(state, enemy, mapa, moves_fygar):
 
     if enemy_name == "Fygar" and nearest_fygar_stuck_on_rock(state, mapa, enemy):
         enemy_x, enemy_y = state["enemies"][enemy]["pos"]
-        enemy_y += 1 if enemy_y + 1 <= 23 else -1
+        enemy_y = enemy_y + 1 if enemy_y + 1 <= 23 else enemy_y - 1
 
     return (enemy_x, enemy_y)

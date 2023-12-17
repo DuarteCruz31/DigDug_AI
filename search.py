@@ -111,6 +111,20 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
         if position in cant_be_there:
             total += POINTS_POOKA
 
+        nearest_enemy_name = state["enemies"][nearest_enemy]["name"]
+
+        if (
+            nearest_enemy_name == "Fygar"
+            and int(state["level"]) >= 7
+            and calc_distance(state["digdug"], state["enemies"][nearest_enemy]["pos"])
+            <= 5
+        ):
+            if position[1] == enemy_y:
+                total += 1000
+            total += abs(position[0] - enemy_x) * 1000
+            if position[0] == enemy_x:
+                total -= 1000
+
     return total
 
 
