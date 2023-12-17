@@ -243,15 +243,11 @@ def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=Fa
     Returns:
         str or None: A string representing the next move ('A' for shooting) or None if no valid move is found.
     """
-
-    if nearest_enemy == None:
-        goal = (0, 0)
-    else:
-        goal = (
-            set_goal(state, nearest_enemy, maze, moves_fygar)
-            if controlo == False
-            else (0, 0)
-        )
+    goal = (
+        set_goal(state, nearest_enemy, maze, moves_fygar)
+        if controlo == False
+        else (0, 0)
+    )
     digdug_x, digdug_y = start
     enemy_x, enemy_y = goal
     real_enemy_x, real_enemy_y = state["enemies"][nearest_enemy]["pos"]
@@ -262,11 +258,16 @@ def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=Fa
     ):
         return "A"
     elif (
-        (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
-        or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
-        and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
-        == False
-    ) or controlo == True:
+        (
+            (abs(digdug_x - real_enemy_x) <= 3 and digdug_y == real_enemy_y)
+            or (abs(digdug_y - real_enemy_y) <= 3 and digdug_x == real_enemy_x)
+            and can_shoot(state, maze, last_move, nearest_enemy, digdug_x, digdug_y)
+            == False
+        )
+        or in_the_fire(state, maze, start)
+        or in_the_fire(state, maze, goal)
+        or controlo == True
+    ):
         avoid = True
         if start == (0, 0):
             goal == (enemy_x, enemy_y)
@@ -359,6 +360,10 @@ def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=Fa
                         and current_node[1] != 0
                         and current_node[1] != 23
                     ):
+                        """if enemy["name"] == "Fygar":
+                        if goal != neighbor and in_the_fire(state, maze, neighbor):
+                            control = True
+                            break"""
                         if enemy["name"] != "Fygar":
                             if (
                                 abs(nx_ - enemy["pos"][0]) <= 1
@@ -367,79 +372,14 @@ def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=Fa
                                 control = True
                                 break
 
-                        if (
-                            abs(enemy["pos"][0] - current_node[0]) <= 1
-                            and abs(enemy["pos"][1] - current_node[1]) <= 0
-                        ) or (
-                            abs(enemy["pos"][0] - current_node[0]) <= 0
-                            and abs(enemy["pos"][1] - current_node[1]) <= 1
-                        ):
-                            if (
-                                enemy["pos"][0] == current_node[0] + 1
-                                and enemy["pos"][1] == current_node[1]
-                                and (dx, dy)
-                                == (
-                                    1,
-                                    0,
-                                )
-                            ):
-                                control = True
-                                break
-                            elif (
-                                enemy["pos"][0] == current_node[0] - 1
-                                and enemy["pos"][1] == current_node[1]
-                                and (dx, dy)
-                                == (
-                                    -1,
-                                    0,
-                                )
-                            ):
-                                control = True
-                                break
-                            elif (
-                                enemy["pos"][0] == current_node[0]
-                                and enemy["pos"][1] == current_node[1] + 1
-                                and (dx, dy)
-                                == (
-                                    0,
-                                    1,
-                                )
-                            ):
-                                control = True
-                                break
-                            elif (
-                                enemy["pos"][0] == current_node[0]
-                                and enemy["pos"][1] == current_node[1] - 1
-                                and (dx, dy)
-                                == (
-                                    0,
-                                    -1,
-                                )
-                            ):
-                                control = True
-                                break
-                        """ else:
-                            if ny_ == enemy["pos"][1]:
-                                if (
-                                    enemy["dir"] == 1
-                                    and nx_ - enemy["pos"][0] <= 3
-                                    and maze[enemy["pos"][0] + 1][enemy["pos"][1]] == 0
-                                ) or (
-                                    enemy["dir"] == 3
-                                    and nx_ - enemy["pos"][0] >= -3
-                                    and maze[enemy["pos"][0] - 1][enemy["pos"][1]] == 0
-                                ):
-                                    control = True
-                                    break """
-
-                for rock in state["rocks"]:
+                """ for rock in state["rocks"]:
                     rock_x, rock_y = rock["pos"]
                     if [rock_x, rock_y] == [nx_, ny_] or [rock_x, rock_y + 1] == [
                         nx_,
                         ny_,
                     ]:
                         control = True
-                        break
+                        break """
 
                 if control:
                     continue
