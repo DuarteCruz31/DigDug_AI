@@ -458,7 +458,7 @@ def set_goal(state, enemy, mapa, moves_fygar):
 
     if level >= 7 and id in moves_fygar:
         if fygar_is_repeating_positions(moves_fygar[id]):
-            real_enemy_x, real_enemy_y = state["enemies"][enemy]["pos"]
+            # print("repetiu")
             previous_move = moves_fygar[id][
                 -1
             ]  # (x, y)  (23,12) -> (22, 12) -> (23,12)
@@ -468,35 +468,25 @@ def set_goal(state, enemy, mapa, moves_fygar):
                 if previous_move[1] > second_move[1]:
                     enemy_x = previous_move[0]
                     enemy_y = (
-                        previous_move[1] + 1
-                        if int(previous_move[1]) + 1 < 23
-                        else previous_move[1] - 1
+                        previous_move[1] + 1 if int(previous_move[1]) + 1 < 23 else -1
                     )
                 elif previous_move[1] < second_move[1]:
                     enemy_x = second_move[0]
-                    enemy_y = (
-                        second_move[1] + 1
-                        if int(second_move[1]) + 1 < 23
-                        else second_move[1] - 1
-                    )
+                    enemy_y = second_move[1] + 1 if int(second_move[1]) + 1 < 23 else -1
             elif previous_move[1] == second_move[1]:
                 if previous_move[0] > second_move[0]:
                     enemy_x = previous_move[0]
                     enemy_y = (
-                        previous_move[1] + 1
-                        if int(previous_move[1]) + 1 < 23
-                        else previous_move[1] - 1
+                        previous_move[1] + 1 if int(previous_move[1]) + 1 < 23 else -1
                     )
                 elif previous_move[0] < second_move[0]:
                     enemy_x = second_move[0]
                     enemy_y = (
-                        previous_move[1] + 1
-                        if int(previous_move[1]) + 1 < 23
-                        else previous_move[1] - 1
+                        previous_move[1] + 1 if int(previous_move[1]) + 1 < 23 else -1
                     )
 
     if enemy_name == "Fygar" and nearest_fygar_stuck_on_rock(state, mapa, enemy):
         enemy_x, enemy_y = state["enemies"][enemy]["pos"]
-        enemy_y = enemy_y + 1 if enemy_y + 1 <= 23 else enemy_y - 1
+        enemy_y += 1
 
     return (enemy_x, enemy_y)

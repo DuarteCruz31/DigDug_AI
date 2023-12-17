@@ -4,9 +4,9 @@ from auxiliarFuncs import *
 POINTS_ROCKS = 10000
 POINTS_FYGAR = 10000
 POINTS_WALL = 5
-POINTS_POOKA = 60000
+POINTS_POOKA = 10000
 POINTS_GHOST = 10000
-POINTS_AVOID = 60000
+POINTS_AVOID = 10000
 
 
 def calculate_cost_normal(maze, position, state, nearest_enemy):
@@ -28,16 +28,10 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
     """
     total = 0
 
-    if int(state["level"]) >= 7 and state["enemies"][nearest_enemy]["name"] == "Fygar":
-        if maze[position[0]][position[1]] == 1:
-            total += 0
-        else:
-            total += 0
+    if maze[position[0]][position[1]] == 1:
+        total += POINTS_WALL
     else:
-        if maze[position[0]][position[1]] == 1:
-            total += POINTS_WALL
-        else:
-            total += 1
+        total += 1
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -110,20 +104,6 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 
         if position in cant_be_there:
             total += POINTS_POOKA
-
-        nearest_enemy_name = state["enemies"][nearest_enemy]["name"]
-
-        if (
-            nearest_enemy_name == "Fygar"
-            and int(state["level"]) >= 7
-            and calc_distance(state["digdug"], state["enemies"][nearest_enemy]["pos"])
-            <= 5
-        ):
-            if position[1] == enemy_y:
-                total += 1000
-            total += abs(position[0] - enemy_x) * 1000
-            if position[0] == enemy_x:
-                total -= 1000
 
     return total
 
@@ -392,14 +372,14 @@ def astar(maze, start, state, nearest_enemy, last_move, moves_fygar, controlo=Fa
                                 control = True
                                 break
 
-                for rock in state["rocks"]:
+                """ for rock in state["rocks"]:
                     rock_x, rock_y = rock["pos"]
                     if [rock_x, rock_y] == [nx_, ny_] or [rock_x, rock_y + 1] == [
                         nx_,
                         ny_,
                     ]:
                         control = True
-                        break
+                        break """
 
                 if control:
                     continue
