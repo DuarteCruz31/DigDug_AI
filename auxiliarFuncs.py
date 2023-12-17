@@ -477,7 +477,7 @@ def set_goal(state, enemy, mapa, moves_fygar):
                     enemy_y = (
                         second_move[1] + 1
                         if int(second_move[1]) + 1 < 23
-                        else previous_move[1] - 1
+                        else second_move[1] - 1
                     )
             elif previous_move[1] == second_move[1]:
                 if previous_move[0] > second_move[0]:
