@@ -52,8 +52,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
 
                 # Get the index of the nearest enemy to the player
                 nearest_enemy = nearest_distance(state)
-                if nearest_enemy is None:
-                    continue
 
                 # Preform A* algorithm to find the best path to the nearest enemy, if possible
                 acao = astar(
@@ -134,7 +132,6 @@ def nearest_distance(state):
 
     Args:
         state (dict): The game state containing information about the current game situation.
-
     Returns:
         int: The index of the nearest enemy in the "enemies" list of the game state.
     """
@@ -143,6 +140,10 @@ def nearest_distance(state):
     for i in range(len(state["enemies"])):
         enemy = state["enemies"][i]
         distance = math.dist(state["digdug"], enemy["pos"])
+        if enemy["pos"][0] <= 1 and enemy["pos"][1] <= 1:
+            continue
+        elif enemy["pos"][0] >= 46 and enemy["pos"][1] >= 22:
+            continue
         if distance < nearest_distance:
             nearest_distance = distance
             nearest_enemy = i
