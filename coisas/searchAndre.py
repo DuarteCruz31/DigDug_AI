@@ -28,10 +28,16 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
     """
     total = 0
 
-    if maze[position[0]][position[1]] == 1:
-        total += POINTS_WALL
+    if int(state["level"]) >= 7 and state["enemies"][nearest_enemy]["name"] == "Fygar":
+        if maze[position[0]][position[1]] == 1:
+            total += 0
+        else:
+            total += 0
     else:
-        total += 1
+        if maze[position[0]][position[1]] == 1:
+            total += POINTS_WALL
+        else:
+            total += 1
 
     for rock in state["rocks"]:
         rock_x, rock_y = rock["pos"]
@@ -104,6 +110,20 @@ def calculate_cost_normal(maze, position, state, nearest_enemy):
 
         if position in cant_be_there:
             total += POINTS_POOKA
+
+        nearest_enemy_name = state["enemies"][nearest_enemy]["name"]
+
+        if (
+            nearest_enemy_name == "Fygar"
+            and int(state["level"]) >= 7
+            and calc_distance(state["digdug"], state["enemies"][nearest_enemy]["pos"])
+            <= 5
+        ):
+            if position[1] == enemy_y:
+                total += 1000
+            total += abs(position[0] - enemy_x) * 1000
+            if position[0] == enemy_x:
+                total -= 1000
 
     return total
 
