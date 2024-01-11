@@ -1,33 +1,26 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/yvOMUkkU)
+# AI DigDug
 
-# ia-digdug
-DigDug clone for AI teaching
+## Description
 
-## How to install
+DigDug is a game where the player digs tunnels through the ground and kills enemies by pumping them with air until they explode. The player can also drop rocks on enemies to kill them. The player wins when all enemies are dead.
+
+This project is the implementation of an AI that plays DigDug. The AI is implemented using the A* algorithm to find the shortest path to the enemy and then it uses a state machine to decide what to do next.
+
+## How to run
 
 Make sure you are running Python 3.11.
 
 `$ pip install -r requirements.txt`
 
-*Tip: you might want to create a virtualenv first*
-
-## How to play
-
-open 3 terminals:
-
 `$ python3 server.py`
 
 `$ python3 viewer.py`
 
+`$ python3 student.py`
+
+If you want to play the game yourself, run the following command instead of the last one:
+
 `$ python3 client.py`
-
-to play using the sample client make sure the client pygame hidden window has focus
-
-### Keys
-
-Directions: arrows
-
-*A*: 'a' - pump enemies
 
 ## Debug Installation
 
